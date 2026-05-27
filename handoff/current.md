@@ -270,3 +270,75 @@ Cron checks 21 oldest open invoices per run. Pre-silo-8 manual button only re-ch
 - `fixtures/plan-d-backfill-4-candidates.md`
 - `fixtures/so-55153-and-55309-stuck-candidates.md`
 
+
+---
+appended_by_silo: 9
+appended_date: 2026-05-25
+---
+
+## Silo 9 contributions (appended 2026-05-25)
+
+### Current state at silo 9 close
+
+**Three shipped fixes, one in active debug:**
+
+1. âœ… **Receive-watch race condition** â€” merged to main. Brand=Rolex pre-fills correctly on band-only jobs via `hasPrefilledRef` guard at `ClientWatchEntryPage.tsx` L177-189.
+
+2. âœ… **RW receiver Fix A+B** â€” shipped to test branch as commit `3bee3db`. `dept_*` derived from service codes; `job_components.department` set at INSERT.
+
+3. âœ… **RC band-flow Phase 1** â€” shipped as RS `98ce8a36` + RC `cf0a56e`. Sectioned DTO v2, version-aware backward compat, secondary badge for split-flow.
+
+4. â³ **Beacon EST 25530 pre-fill** â€” Cursor applied Fix 2 + Fix 3 (clobber guard + itemType sync) but Brand pill still blank. Bulldozer prompt drafted, not sent. Open at chat close.
+
+### What the next silo should pick up
+
+**Immediate:**
+- Send bulldozer prompt for beacon EST 25530 (in known-gaps/beacon-est-25530-blank-prefill.md)
+- Verify Fix A+B by saving a new band-only intake from RS, then checking RW shop floor for the new job (no BackfillPanel needed, dept_b auto-set)
+- Verify RC band-flow on a band-only customer portal URL â€” should show 6-step linear timeline
+
+**Receiver fix backlog (after verification):**
+- Fix C: duplicate jobs path (~15 lines)
+- Fix D: stop writing "Client #<est>" placeholder (~3 lines)
+- Fix E: receiver sets job_components assignee_* on re-intake (~20 lines)
+- Display bracelet_description on RW shop floor + work queue (~5 lines)
+- Send real dateReceived in push (not today)
+- Send notes in push
+
+**Rebuild planning (2-week phase starts now):**
+- Six architectural decisions to document (auth, migration, RC inclusion, table naming, RLS, schema organization)
+- See `decisions/2026-05-25-shared-supabase.md` for open questions list
+
+### Workflow change effective immediately
+
+- **Cursor + localhost** is now the primary tool for architectural work
+- Three repos cloned at `~/rolliworks/{rollisuite, rolliworking, rollicrm}` (test branch each)
+- Lovable retained for UI scaffolding only
+- All future Cursor prompts MUST start with reuse-first search instruction
+- Beacon fixtures (`BR-Tracking-Beacon` + EST 25530) are now baseline for cross-app verification
+
+### Open architectural questions for planning phase
+
+- Auth model: one login across RS+RW+RC, or separate per app?
+- Migration approach: big bang, parallel writing, read-only freeze?
+- Does RC also share merged Supabase, or stay separate via edge functions?
+- Table naming: prefixed (crm_*, repair_*) vs Postgres schemas vs current names?
+- RLS strategy for shared DB with operator/owner/customer differentiation
+
+### Lessons carried forward
+
+- Don't trust "applied" claims without verification on actual served bundle
+- DevTools console relay through user is slow and error-prone â€” prefer giving Cursor direct file/DB access
+- Race conditions in React effects are subtle â€” beacon with explicit known values exposes them
+- The receive-watch page is the canonical pain point for trickle-down architecture â€” it's where 4 silos worth of bugs live
+- Same string can mean different things in different parts of codebase (`waiting_components` = "Awaiting reunion" component-level AND "Awaiting Invoice" job-level) â€” naming collisions caught in silo 9 audit
+
+### Test fixtures established
+
+- EST 24818 â€” Rolex Oval Jubilee, BR-OVAL-JUB-ALL, working reference
+- EST 25523 â€” Rolex Oyster, BR-OY-PIN, regression case
+- EST 25530 â€” beacon, BR-Tracking-Beacon, traces full pipeline
+- BR-Tracking-Beacon and BR-Tracking-Beacon2 parts rows in /inventory/parts
+
+These should survive any cleanup. They are intentional regression-test data.
+
