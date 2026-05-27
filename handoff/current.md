@@ -342,3 +342,118 @@ appended_date: 2026-05-25
 
 These should survive any cleanup. They are intentional regression-test data.
 
+
+---
+last_updated: 2026-05-27
+last_silo: 10
+last_silo_status: shipped (root fix verified); RSâ†’RW research complete
+next_silo_focus: TBD â€” depends on operational evidence for markerless flow
+---
+
+# RolliWorks Project â€” Live Handoff Doc
+
+**Read this first in every new chat.** This is the running synthesis of what's known about the project across silos.
+
+## What this project is
+
+RolliWorks ecosystem â€” three apps:
+- **RolliSuite (RS)** â€” operator-facing ERP. Estimates, receive-watch, intake labels, package receive, customer management. Lives at `~/rolliworks/rollisuite`.
+- **RolliWorking (RW)** â€” shop-floor app. Job tracking, technician work queues, component routing. Lives at `~/rolliworks/rolliworking`.
+- **RolliCRM (RC)** â€” customer-facing portal. Order timeline, inspection approvals. Lives at `~/rolliworks/rollicrm`.
+
+All three on Supabase backend. Frontend React/TypeScript. Owner: Mike Hui, solo dev with Claude + Cursor + Lovable assistance.
+
+## What's stable / shipped
+
+- **Receive-watch prefill works** for both URL-param entry (`?estimate=N`) and scan-input entry. Silo 10 commit `f2e1c0ba` on `rollisuite` `test` branch (pending merge to main after regression).
+- **BR-Tracking-Beacon fixture** lives permanently in RS parts table. Use for diagnostic tracing â€” see `fixtures/br-tracking-beacon.md`.
+- **Diagnostic logs** live in `src/pages/intake/ClientWatchEntryPage.tsx`: `[PREFILL EFFECT ENTRY]`, `[BEACON TRACE]`, `[MATCHER CHECK]`, `BR LOOP`, `BRACELET PART DETAIL`, `POST-PREFILL formData`, `LINE ITEMS RAW`, `ESTIMATE QUERY RESULT`. Don't strip blindly.
+
+## Working methodologies (USE THESE)
+
+- **Beacon strategy** â€” sentinel-value test fixtures for contamination-free debugging. `decisions/2026-05-25-beacon-strategy.md`
+- **Bulldozer methodology** â€” research entire pipeline in one pass before any fixes. `decisions/2026-05-25-bulldozer-methodology.md`
+- **Ground-truth verification** â€” never speculate about DB content. Run a query, paste the raw result. If you can't, say so.
+- **Two independent research passes** â€” for cross-app debugging, get RS-side and RW-side researched separately and cross-validate.
+
+## Anti-patterns (AVOID THESE)
+
+- **False summits.** Don't announce "found it" / "got it" until the bulldozer table is complete and the proposed fix accounts for every gap. User has counted 50-100+ premature claims across silos 7-10. They cost trust.
+- **Inference as fact.** Don't extrapolate from one signal to a system-wide claim. If a researcher says "to test path X you'd need fixture Y," that doesn't mean fixture-Y-shaped data exists in production.
+- **Fix before research on cross-layer bugs.** Apply bulldozer at hour 5-10 of any bug spanning multiple apps or stages, not at hour 95.
+
+## Open known gaps (status: deferred at silo 10 close)
+
+| Gap | Severity | Status |
+|-----|----------|--------|
+| Markerless estimates â†’ BAND_ONLY_FLOW misclassification | Code blast-radius large; operational impact unknown | Deferred pending evidence |
+| 9 setFormData paths in ClientWatchEntryPage.tsx | Architectural debt | Defer refactor until stability proven |
+| RW data blind spots (bracelet_description, received_components not rendered) | Operator trust ("data going into trash") | Open, requires multi-track work |
+| Package-receive trickle failure | EST 24833 example | Open â€” pre-selection bug + reconciliation rule both missing |
+| Prefix-mismatch dead matchers | Mostly cosmetic | Coupled to markerless decision |
+| RW caret payload positions 8, 10, 11 dead | Bulldozer bugs 7, 11 | Open â€” fix during data contract redesign |
+
+Full detail in `known-gaps/` directory.
+
+## Repo locations
+
+- RS: `~/rolliworks/rollisuite`
+- RW: `~/rolliworks/rolliworking`
+- RC: `~/rolliworks/rollicrm`
+- Documentation: `~/rolliworks/documentation` (this repo)
+
+## Branch conventions
+
+- Work happens on `test` branch
+- Merge to `main` only after regression verification
+- Lovable picks up changes from GitHub
+- Cursor + localhost is the dev environment
+
+## Where to look first for any new task
+
+1. **Read this `handoff/current.md`** (you are here)
+2. **Read the most recent `silos/silo-N.md`** for what just happened
+3. **Read relevant `known-gaps/*.md`** if the task touches a known problem area
+4. **Read relevant `decisions/*.md`** to understand why things are the way they are
+5. Only then dive into code
+
+## Silo log
+
+| Silo | Topic | Status |
+|------|-------|--------|
+| 1-9 | (Pre-documentation-repo; texture not preserved) | shipped or deferred â€” see commit history |
+| 10 | Receive-watch prefill root cause + RSâ†’RW research | shipped (root fix); research complete |
+
+## How this doc gets updated
+
+At each silo close, append a new "Silo N close" section below summarizing:
+- What changed in known gaps (closed? new? severity shifted?)
+- What new decisions were made
+- What's the next silo's likely focus
+
+Don't rewrite this doc â€” append. Newest at the bottom. Old text stays as historical context.
+
+---
+
+## Silo 10 close â€” 2026-05-27
+
+### Changed
+- New decision: documentation repo established (this).
+- Known gaps documented (5 files): markerless-estimates, prefix-mismatch, rw-data-blind-spots, nine-setformdata-paths, package-receive-trickle.
+- Fixture documented: br-tracking-beacon (permanent).
+- Methodology decisions documented: beacon strategy, bulldozer methodology, defer markerless flow fix.
+
+### Status of silo 10 work
+- Receive-watch prefill SHIPPED via `f2e1c0ba` (URL-param `.or()` normalization) + uncommitted scan-path URL handoff. Both verified working on EST 25530.
+- Regression test on EST 25523 and 24818 PENDING before merge to main.
+- Three pre-root commits (`a3e4a339`, `70505bdf`, `cb322d0d`) shipped real but secondary fixes.
+
+### Next silo likely focus
+Depends on the three operational evidence questions:
+1. Has any operator reported watch jobs flipping to band-only on receive-watch?
+2. Has any customer complained about wrong portal timeline?
+3. Do shop floor techs rely on component dots, or route work informally?
+
+If any "yes" â†’ silo 11 = markerless flow fix.
+If all "no" â†’ silo 11 = RW shop floor rendering of bracelet_description (smaller scope, addresses "data going into trash" complaint).
+
