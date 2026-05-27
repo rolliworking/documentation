@@ -54,3 +54,58 @@
 - EST-24187 approval mismatch (Mike says approved, DB says waiting_approval)
 - Has band-only intake catch-up batch happened?
 - Does RW caret-delimited parser tolerate unknown trailing fields? (Plan C blocker)
+
+---
+silo: 7
+date: 2026-05-14
+status: append-only contribution to handoff/current.md
+last_validated: 2026-05-14
+---
+
+# Silo 7 contribution to handoff/current.md
+
+(This section appends to whatever already exists in `handoff/current.md`. If the file is new, this is the seed.)
+
+## From silo 7 (2026-05-14)
+
+### Shipped to RW test branch (verified working)
+
+- **B1+B2: shop floor `station_id` column + drag routing fix.** Added `station_id text` nullable column to `job_components` and `job_component_logs`. Changed qc_inspect station from `department: "qc"` (CHECK constraint violation) to `department: "band_repair"`. Patched BOTH `commitDrop` (drag handler) and `handleCommit` (scan handler) in `src/pages/ShopFloor.tsx` to write `station_id`. Refactored `dotStationFor()` to check station_id first, fall back to existing logic. User-verified working â€” drag-to-QC-inspect now succeeds and persists across refresh.
+
+### Applied to RS test branch (smoke test pending)
+
+- **Performance Report `client_first_name`.** Added nullable column to `performance_verification_reports`. Form field, prefill from `customers.first_name`, preview render with graceful NULL fallback. Migration existence not directly verified by SQL â€” recommended check before merge: `SELECT column_name FROM information_schema.columns WHERE table_name = 'performance_verification_reports' AND column_name = 'client_first_name';`. Smoke test on real SO pending.
+
+- **Fix A: persistOrder UUID patch-back.** `persistOrder` INSERT branch now captures returned UUIDs via `.select()` and patches local `lineItems` so subsequent saves match `existingLineMap`. Test 1 (saveâ†’saveâ†’refresh) passed on test branch. Test 2 (with navigation through Performance Report or similar â€” the SO 501694 production failure mode) pending real order.
+
+### Scoped but not applied
+
+- **Fix B: `handleQuickBarcodeSubmit` re-entry guard.** One-line fix: `if (isQuickSearching) return;` at top of handler in `SalesOrderDetailPage.tsx` lines 525-704. Stops in-batch dups (Write 2 pattern on SO 501694). Prompt drafted, not yet applied.
+
+### Architecture findings now documented (previously undocumented)
+
+- **RW has two parallel access-control systems:** permission-key (`RequirePermission` + `role_permissions` table) for routes/nav, role-string (`useUserRole()`) for in-page features. Roles are `owner`/`manager`/`staff` â€” **no `admin` role exists**. Manager has 25 of 28 owner permissions (missing only `data.export`, `users.manage`, `users.permissions`, `users.view`). Managers CAN access `/shop-floor` today.
+
+- **Shop floor commit asymmetry:** `ShopFloor.tsx` has TWO commit handlers (`commitDrop` for drag, `handleCommit` for scan). Similar but not identical code. Changes touching "what gets written on dot move" need BOTH patched. Tech debt: unify into shared helper.
+
+- **Performance Report identity fields are text snapshots, not joins.** Snapshot drift hazard. Documented in known-gaps.
+
+- **SO duplicate-line bug has TWO independent causes:**
+  1. `handleQuickBarcodeSubmit` async re-entry (Fix B target)
+  2. `persistOrder` non-UUID local ids never patched back to UUIDs after INSERT (Fix A target, applied)
+
+### Validation pending next session
+
+- Plan A (silo 6) tomorrow morning's intakes
+- Fix A test 2 on next real order with navigation
+- Performance Report client_first_name smoke test
+- B1+B2 verify all station types (band_tech, movement_service, refinish_case, lock stations) on test branch
+- Migration existence check for Performance Report client_first_name
+
+### Deferred to next session
+
+- Fix B (5-min one-line fix, prompt drafted)
+- Job History Lookup shop floor visibility (designed: per-component current-state block at dialog top; recommend fresh chat for design conversation budget)
+- Auto-assign single-tech stations (open product questions about QC tech identification)
+- `commitDrop` `assigned_to` fix (prerequisite for event-timeline view in Job History Lookup)
+
