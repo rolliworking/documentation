@@ -109,3 +109,164 @@ last_validated: 2026-05-14
 - Auto-assign single-tech stations (open product questions about QC tech identification)
 - `commitDrop` `assigned_to` fix (prerequisite for event-timeline view in Job History Lookup)
 
+
+---
+silo: 8
+date: 2026-05-15
+intent: APPEND this content to existing handoff/current.md in the repo
+last_validated: 2026-05-15
+---
+
+# Silo 8 contributions
+
+The following sections update / extend the prior handoff content. They are written to be appended (not replaced) so the doc history accumulates.
+
+## New workflow conventions
+
+### Apply messages must restate surgical framing
+
+Bare "approved" leaves room for Lovable to interpret broadly â€” pull in nearby cleanups, add "improvements," append follow-up suggestions. Restating the framing at apply time keeps blast radius constrained.
+
+- Original prompt: `# Mode: Surgical fix â€” plan first, apply after I confirm`
+- Apply trigger: `# Mode: Surgical fix â€” apply the plan exactly as shown` + restated constraints
+
+Example apply message structure:
+```
+# Mode: Surgical fix â€” apply the plan exactly as shown
+
+Apply [feature] plan from your previous message. Constraints carry over:
+
+- Touch [N] file(s): [list]
+- No new dependencies
+- No schema changes
+- No "while we're here" cleanups
+- No follow-up suggestions appended
+- Use the existing [pattern/component]
+- Apply exactly the diffs shown â€” no additions
+
+After applying, confirm:
+- Exact lines changed (file + line numbers)
+- No other files touched
+- No new imports beyond what the plan specified
+```
+
+### Don't proactively suggest stopping
+
+Mike pushed back on this twice in silo 8. The "you're tired, save it for morning" framing is annoying, condescending, reduces trust. Trust the user to manage their own time. Only mention rest if the user raises it first.
+
+If a session is visibly degrading on the user's side (paste mix-ups, contradictory instructions), Claude can mention it ONCE. Then drop it.
+
+### Don't anchor to a time without checking
+
+Claude anchored to "11:43pm hard stop at 2am" mid-session and kept referencing those times into Mike's afternoon (4:08pm est). Sessions can pause and resume. Don't assume continuity of time. If timing matters, ask.
+
+### When Lovable says "fully patched," ask for ALL writers
+
+Silo 7's B1+B2 verification was technically correct on the surface it covered. Silo 8 follow-up found 12+ other writers that silo 7 didn't audit. Going forward, when Lovable claims a shared-code surface is "fully patched":
+
+> List EVERY writer to this table/column in the entire codebase, not just the obvious ones. Include async handlers, dialog flows, edge functions, and any other place that touches the same column.
+
+This is the audit prompt that surfaced the silo 8 finding.
+
+### Three-AI workflow is load-bearing
+
+A week of productive shipping has confirmed it. Lovable on the live codebase with DB access for verification, Claude on planning + cross-checking confident claims, Mike as deliberate bus. Neither tool alone would have caught what got shipped this week.
+
+The discipline drivers are:
+- "Surgical fix â€” plan first" framing
+- Research prompts before fix prompts
+- Apply-message-restates-framing
+- "List every writer" follow-ups
+
+## New vocabulary
+
+### Push vs Shove
+
+Two distinct Ship Station actions on the SO detail page:
+
+- **Push to Ship Station** â€” Existing action. Local DB UPDATE setting `fulfillment_channel='ship'` (plus destructive downgrade branch when status='shipped'). Does NOT bypass `isPaid` gate. Not a real external integration.
+- **Shove to Ship Station** â€” Designed silo 8, not yet built. Admin-only super override. Sets `is_paid=true, paid_at=now(), fulfillment_channel='ship'`. Audits to `payment_bypass_log` with reason. SMS via `send-security-alert`.
+
+Operational rule: a push routes, a shove forces.
+
+## New architectural findings
+
+### station_id is only populated by 2 of 14+ writers
+
+ShopFloor.tsx's `commitDrop` (line 664) and `handleCommit` (line 1033) are the only writers populating `job_components.station_id`. The other 12 writers (smart-create, NewJob, BandKanban, ComponentStatus, BackfillBandJobs, StationScanner, component-creation.ts, rollisuite-intake, rollisuite-change-order, rollisuite-so-fulfilled) do not.
+
+Result: 221/222 components have NULL station_id; 130/136 logs do (42 of which are `backfill` rows where NULL is correct).
+
+**Implication:** any UI surface reading station_id must treat NULL as dominant. Department fallback is the primary display path. The Job History Lookup pills shipped silo 8 deliberately don't read station_id.
+
+See `known-gaps/station-id-only-2-of-14-writers.md` for the full writer audit.
+
+### Role schemas differ between RW and RS
+
+- **RW**: `owner` / `manager` / `staff`. No `admin` role exists.
+- **RS**: `admin` / `manager` / `office` / `front_desk` / `staff` / `band_room` (AppRole enum at `src/types/database.ts:13`). No `owner` role exists.
+
+In RS, `admin` IS the super-user / owner-equivalent. Gate super-user features on `useAuth().isAdmin`. When Mike says "owner-only" in an RS context, it means admin.
+
+### Ship Station is NOT a real external integration
+
+"Ship Station" refers to the internal `/sales/ship-station` queue page (`PaidUnshippedOrdersList.tsx`). "Push to Ship Station" on the SO detail page (lines 2069-2093) is a local DB UPDATE only. There is no ShipStation API integration.
+
+Push side effects worth knowing:
+- Always sets `fulfillment_channel = 'ship'`
+- On downgrade from `status='shipped'`: clears `tracking_number`, `ship_date`, zeroes all `so_lines.shipped_qty` â€” **destructive, no confirmation dialog**
+
+### `set_job_status` cannot be reused from triggers
+
+The RPC has `auth.uid()` checks that fail for service-role writers (edge functions, intake). Plan D's trigger reimplements the write + RS push directly with SECURITY DEFINER.
+
+### jobs.status is single-dimensional â€” limits RS visibility
+
+A job has multiple components. Component statuses can diverge. `jobs.status` is one value. So RS, which reads `jobs.status` only, cannot show "bracelet done, watch still in progress." See `known-gaps/jobs-status-single-dimensional-no-partial-completion.md`.
+
+### QBO sync has a small window for paid invoices to fall through
+
+Cron checks 21 oldest open invoices per run. Pre-silo-8 manual button only re-checked last 7 days. SOs in the gap (older than ~3 weeks, paid in QBO after the cron's window) stay locally-unpaid until someone notices. Part 2 widening (shipped silo 8) catches them on manual click.
+
+## Shipped silo 8
+
+**RW production:**
+- Job History Lookup component status pills â€” per-component pills below existing 3 header pills, reusing `Badge` component, fallback `assignee_initials` â†’ `department` â†’ status alone.
+
+**RS production:**
+- SO 500950 unblock Part 1 (data UPDATE: `is_paid=true, paid_at=now()` on row `a5e827c2-1eb9-4094-b3ba-c79d020d3667`).
+- Sync QBO button widening Part 2 (`PaidUnshippedOrdersList.tsx` lines 350-358, 414; "any unpaid row with qboInvoiceId, oldest-first, cap 25").
+
+## Designed but NOT YET applied
+
+- **Plan D â€” bump_job_to_in_progress trigger.** Verified pg_net, no existing triggers, auth.uid reimplementation justified. Backfill of 4 candidates skipped. Surgical-fix prompt not yet drafted.
+- **Plan E â€” Shove to Ship Station.** Admin-only override. Cloned-from-PaymentBypassDialog modal. Reuses `payment_bypass_log` with `station='ship_station'`. Surgical-fix prompt drafted but not yet pasted.
+- **Fix B â€” handleQuickBarcodeSubmit re-entry guard.** One line in `SalesOrderDetailPage.tsx`. Touched silo 7 and silo 8; neither landed. Silo 8 sent prompt to wrong AI (RW Lovable correctly refused).
+- **Deep-link from JobHistoryLookup to Shop Floor.** Researched, ~6-10 lines in ShopFloor.tsx. Lower priority after pills shipped.
+
+## New urgent backlog (silo 8)
+
+- **SO 501718 QBO Customer Memo length error** â€” push fails with ValidationFault, 1016 > 1000 chars. Source of overage unknown. Customer-blocking.
+- **QBO webhook CloudEvents deadline** â€” May 15, 2026 (today). Whether RS migrated unknown. If not, payment-status webhooks fail silently.
+- **2 candidate stuck SOs** â€” 55153, 55309. Pending Part 2 button verification.
+- **Push to Ship Station destructive downgrade** â€” wipes shipment evidence with no confirmation when status=shipped.
+- **Premature `status='fulfilled'` source bug** â€” Part 3 from SO 500950 investigation.
+
+## See also (from this silo's bundle)
+
+- `silos/silo-8.md` â€” full silo writeup
+- `known-gaps/station-id-only-2-of-14-writers.md`
+- `known-gaps/qbo-customer-memo-1000-char-limit.md`
+- `known-gaps/qbo-webhook-cloudevents-migration.md`
+- `known-gaps/push-to-ship-station-destructive-downgrade.md`
+- `known-gaps/jobs-status-single-dimensional-no-partial-completion.md`
+- `decisions/2026-05-15-pills-over-current-state-block.md`
+- `decisions/2026-05-15-shove-to-ship-station-design.md`
+- `decisions/2026-05-15-plan-d-trigger-approach.md`
+- `decisions/2026-05-15-so-500950-three-part-split.md`
+- `fixtures/so-500950.md`
+- `fixtures/so-501718.md`
+- `fixtures/est-24392-larissa-oprysk.md`
+- `fixtures/plan-d-backfill-4-candidates.md`
+- `fixtures/so-55153-and-55309-stuck-candidates.md`
+
