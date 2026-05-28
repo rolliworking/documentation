@@ -11,7 +11,7 @@ Cross-repo documentation for the Rolliworks ecosystem (RolliSuite, RolliWorking,
 | `known-gaps/` | Documented gaps and drift |
 | `decisions/` | Architecture and workflow decisions with reasoning |
 | `fixtures/` | Real estimate/job fixtures for regression and debugging |
-| [`rc/`](rc/README.md) | RolliConnect (RC) — silos, gaps, decisions, fixtures, handoff |
+| [`rc/`](rc/README.md) | RolliConnect (RC) — architecture, features, plans, prompts, handoffs, technical debt |
 
 ## Silos
 

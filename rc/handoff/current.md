@@ -1,7 +1,10 @@
-# RC handoff
+# RC handoff (current)
 
-Rolling notes for the next RC session. For ecosystem-wide handoff see [handoff/current.md](../../handoff/current.md).
+**Latest full session handoff:** [handoffs/session-handoff-2026-05-27.md](../handoffs/session-handoff-2026-05-27.md)
 
-## Last updated
+For ecosystem-wide handoff (RS + RW + RC), see [handoff/current.md](../../handoff/current.md) at repo root.
 
-_(not yet populated — add RC-specific next steps here)_
+## Urgent (from 2026-05-27 session)
+
+- **Abandon @mention internal notes** — leaks to customer email for some staff; disable `detectInternalMention()` or revert; keep Mark Unread bump.
+- **Re-add reply token display** under client name in ConversationPanel (lost in Test↔main merge).

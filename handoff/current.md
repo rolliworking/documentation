@@ -457,3 +457,23 @@ Depends on the three operational evidence questions:
 If any "yes" â†’ silo 11 = markerless flow fix.
 If all "no" â†’ silo 11 = RW shop floor rendering of bracelet_description (smaller scope, addresses "data going into trash" complaint).
 
+
+---
+
+## RC session close — 2026-05-27
+
+Full detail: [rc/handoffs/session-handoff-2026-05-27.md](../rc/handoffs/session-handoff-2026-05-27.md)
+
+### Production incident (recovered)
+- Internal notes deploy (`05121ba`) shipped frontend before migration → `is_internal` column missing → silent send failure + inbox color loss.
+- Migration run manually in Supabase SQL editor → recovered.
+
+### Urgent follow-ups
+- **Abandon @mention internal notes** — Vienna `@mike` leaked to customer email; disable or revert feature; keep Mark Unread bump + `is_internal` column/RLS.
+- **Reply token UI** — `<reply_token>@reply.rolliworks.com` block missing from ConversationPanel after merge; re-add.
+
+### Shipped / verified today (RC)
+- Shared team read state, inbox case-insensitive team_users lookup, Vienna manager Send Portal Invite fix, per-customer reply tokens (271 backfilled), Mark Unread bump via `last_message_at`, `get-rc-portal-link` endpoint verified.
+
+### Ingested
+- RC documentation bundle → `documentation/rc/` (architecture, features, plans, prompts, security, technical-debt, handoffs).

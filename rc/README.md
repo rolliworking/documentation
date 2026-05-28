@@ -1,44 +1,112 @@
-# RolliConnect (RC)
+# RolliConnect (RC) — Documentation
 
-Documentation scoped to **RolliConnect** — client CRM, team inbox, and customer portal at [my.rolliworks.com](https://my.rolliworks.com).
+> Documentation for RolliConnect, the customer CRM + portal layer of the Rolliworks ecosystem.
 
-## Repo & infra
+**Repo:** https://github.com/rolliworking/documentation (this content lives in `rc/`)  
+**Production:** my.rolliworks.com  
+**Supabase project:** `ibwrjsmuvrqtokoqpogu`  
+**Last updated:** May 27, 2026
 
-| Item | Value |
-|------|--------|
-| GitHub | `rolliworking/rollicrm-scaffold` |
-| Local path | `~/rolliworks/rollicrm` |
-| Active branch | `Test` |
-| Supabase project | `ibwrjsmuvrqtokoqpogu` |
-| Production URL | https://my.rolliworks.com |
+---
 
-## This folder
+## What is RolliConnect?
 
-RC-specific silos, gaps, decisions, fixtures, and handoff notes live here. Cross-repo items (RS→RW→RC flows, beacons, shared Supabase decisions) remain in the repo root until moved or cross-linked.
+RolliConnect (RC) is the customer-facing layer for Rolliworks Inc, a high-end watch and bracelet repair business (~17 service requests/day, ~$1.5M ARR). RC handles:
 
-| Path | Purpose |
-|------|---------|
-| `rc/silos/` | RC-focused silo closeouts |
-| `rc/handoff/` | RC rolling handoff |
-| `rc/known-gaps/` | RC-only gaps and drift |
-| `rc/decisions/` | RC architecture and workflow decisions |
-| `rc/fixtures/` | RC portal / inbox test fixtures |
+- **Customer portal** — clients track their repair status, view photos, approve estimates, message staff
+- **Internal CRM inbox** — staff (Mike, Vienna) manage customer conversations
+- **Email routing** — inbound replies via Postmark, outbound via Resend
+- **Status display** — pulls workflow status from the workshop (RW) and ERP (RS)
 
-## Related docs (repo root)
+RC is one of three connected systems. See `architecture/three-system-overview.md`.
 
-Cross-repo RC work is documented alongside RS/RW in the shared folders:
+---
 
-- [Silo 9](../silos/silo-9.md) — RC timeline v2, receive-watch beacon
-- [Decision: RC sectioned DTO v2](../decisions/2026-05-25-rc-sectioned-dto-v2.md)
-- [Decision: Shared Supabase](../decisions/2026-05-25-shared-supabase.md)
-- [Fixture: beacon EST 25530](../fixtures/beacon-est-25530.md)
-- [Handoff: current (all repos)](../handoff/current.md)
+## Repository structure
 
-## Edge functions (RC)
+```
+documentation/rc/
+├── README.md                          ← you are here
+├── architecture/                      ← system design, data flow, contracts
+│   ├── three-system-overview.md
+│   ├── token-strategy.md
+│   └── email-routing.md
+├── features/                          ← feature registry with status + entry points
+│   └── feature-registry.md
+├── security/                          ← auth, RLS, compliance
+│   └── security-overview.md
+├── technical-debt/                    ← known bugs, hacks, roadmap
+│   ├── known-issues.md
+│   └── roadmap.md
+├── plans/                             ← scoped feature plans (not yet built)
+├── prompts/                           ← reusable prompts for AI build tools
+│   ├── builds/
+│   ├── research/
+│   └── diagnostics/
+├── handoffs/                          ← session handoff documents
+│   └── session-handoff-2026-05-27.md  ← latest state
+├── handoff/current.md                 ← pointer to latest RC handoff (repo convention)
+├── silos/                             ← RC silo closeouts (when split from root)
+├── known-gaps/                        ← RC-only gaps (stub; see also technical-debt/)
+├── decisions/                         ← RC-only decisions (stub)
+└── fixtures/                          ← RC test fixtures (stub)
+```
 
-| Function | Purpose |
-|----------|---------|
-| `get-rc-portal-link` | RW → RC lookup: email or `rs_customer_id` → portal URL |
-| `portal-intake-router` | Wix / intake routing into conversations |
-| `inbound-email-handler` | Postmark inbound replies |
-| `timeline-status` | Portal progress (proxies RS `rc-timeline-status`) |
+---
+
+## Quick orientation for new contributors (human or AI)
+
+1. **Start here:** `architecture/three-system-overview.md` — understand the 3-system topology
+2. **Then:** `features/feature-registry.md` — what exists and where
+3. **Then:** `technical-debt/known-issues.md` — what's broken or fragile
+4. **For current state:** [handoffs/session-handoff-2026-05-27.md](handoffs/session-handoff-2026-05-27.md) — most recent working state
+
+## Cross-repo docs (repo root)
+
+- [Silo 9](../silos/silo-9.md) — RC timeline v2
+- [Handoff: ecosystem](../handoff/current.md) — RS/RW/RC rolling handoff
+
+---
+
+## The three systems
+
+| System | Name | Role | Supabase Project | Production URL |
+|--------|------|------|------------------|----------------|
+| **RS** | RolliSuite | ERP / intake / estimates / shipping | `djbjwcoddddywkgljuja` | rollisuite.com |
+| **RW** | RolliWorking | Workshop / job management / shop floor | `pkgnrcfqrldwjibghefm` | rolliworking.lovable.app |
+| **RC** | RolliConnect | Customer CRM + portal | `ibwrjsmuvrqtokoqpogu` | my.rolliworks.com |
+
+All three are built on Lovable (React + Vite + TypeScript + Tailwind + Supabase).
+
+---
+
+## Build tool division of labor
+
+- **Lovable** — new features, UI work, database schema, edge functions
+- **Cursor** — surgical fixes, multi-file refactors, code verification, git operations, backup deploy path
+- **Claude (chat)** — architecture decisions, cross-system coordination, prompt drafting, planning
+
+---
+
+## Documentation discipline
+
+This is a living document. Maintenance protocol:
+
+1. **Start of build session:** load relevant docs as context
+2. **During session:** decisions get logged, conflicts flagged
+3. **End of session:** update affected docs, write a handoff if state changed significantly
+4. **Version control:** commit doc changes alongside or after code changes
+
+See `prompts/` for the Master Knowledgebase maintenance prompt.
+
+---
+
+## Tech stack summary
+
+- **Frontend:** React + Vite + TypeScript + Tailwind CSS
+- **Backend:** Supabase (Postgres, Auth, Edge Functions, Storage)
+- **Email inbound:** Postmark (reply.rolliworks.com)
+- **Email outbound:** Resend (transactional)
+- **Intake:** Wix forms → portal-intake-router
+- **Hosting:** Lovable (frontend), Supabase (backend)
+- **Source control:** GitHub (rolliworking org)
