@@ -10,31 +10,49 @@
 
 **One-line goal anchor:** _[paste the rebuild one-line goal here]_
 
+**Source:** Workflow Q&A updates applied 2026-06-25. See `workflows/MICHAEL-WORKFLOW.md` and `workflows/VIANNA-WORKFLOW.md`.
+
 ---
 
 ## Apps & Systems
 
-**RolliSuite** — the ERP application. Source of truth for client files, customer data, caliber and reference data. Lives at rollisuite.com. *Never refer to this as "RS" alone in conversation or docs — always say "RolliSuite" or "RolliSuite (RS)."*
+**RolliSuite (RS)** — the ERP application. Source of truth for client files, customer data, caliber and reference data. Lives at rollisuite.com. "RS" in conversation and docs means RolliSuite.
 
-**RolliWorking** — the workshop/workflow application. Watchmaker bench tool. Tracks job status, watchmaker assignment, parts approval. Lives at rolliworking.lovable.app.
+**RolliWorking (RW)** — the workshop/workflow application. Watchmaker bench tool. Tracks job status, watchmaker assignment, parts approval. Lives at rolliworking.lovable.app.
 
-**RolliConnect** — the CRM and customer portal application. Customer-facing communications. Lives at my.rolliworks.com.
+**RolliConnect (RC)** — the CRM and customer portal application. Customer-facing communications. Lives at my.rolliworks.com.
 
-**RolliTime** — watch accuracy and power-reserve testing application. Owns testing data + the dial-photo library. Separate database. Integrates via API contracts.
+**RolliTime (RT)** — watch accuracy and power-reserve testing application. Owns testing data + the dial-photo library. Separate database. Integrates via API contracts.
 
-**RepairShopr** — third-party SaaS used for pricing, billing, and inventory. We consume its API; we do not own its data. *Never refer to this as "RS" alone.*
+**Authenticator (AA)** — genuine-vs-counterfeit verification app. In ecosystem; reads from dial-photo library and intake photos.
 
 **M3KE** — internal AI knowledge service. v1 live as escalation tool. Future: chatbot embedded in RolliSuite.
 
-**Jarvis** — early-stage AI module. Scope TBD.
+**Jarvis** — planned AI module. Scope TBD.
 
 **PartsWiki** — planned standalone parts-pricing app. See `REBUILD-PREREQUISITES.md` and HANDOFF docs.
 
-**RolliCurator** — planned knowledge-harvest wizard module for master table completion. See `concepts/ROLLICURATOR-CONCEPT.md`.
+**RolliCurator** — planned knowledge-harvest wizard module for master table completion. See `ROLLICURATOR-CONCEPT.md`.
 
 **Rolliworks** — the operating watch service center company.
 
 **Rollie Group** — the strategic holding entity / platform brand.
+
+**IFS Portal** — external shipping insurance vendor. No API. Used daily AM for shipping labels and supply orders. Manual workflow today — copy/paste data, save PDFs, attach to RS via shipping label page. Possible future integration target.
+
+---
+
+## RolliSuite Modules & Screens
+
+**Daily Hit List** — central morning triage screen on RolliSuite. First thing Vianna checks each morning. Surfaces highest-priority items.
+
+**Work Queue** — central job assignment screen on RolliWorking (not RS — listed here because paired with Daily Hit List in daily ops). Used multiple times per day for assigning work, client updates, and communication.
+
+**Shop Floor** — RolliSuite module designed for service-level workflow visibility (e.g. "in safe awaiting component"). **Currently broken** — has never worked correctly. Root cause: components not properly registered at intake. Fixing Shop Floor unblocks service-level completion, component-level safe visibility, and split-flow job tracking.
+
+**Pickup Station** — RolliSuite module for completing customer pickups. Scans pickup QR, compares intake photos to item, takes exit photos. Has QBO payment latency bypass for known-paid pickups.
+
+**Receive Watch / Receive Packages** — RolliSuite intake module. Currently fragments caliber, department, ref-serial, and component data across 5 tables (see intake audit). Major rebuild priority.
 
 ---
 
@@ -56,13 +74,21 @@
 
 **Movement** — alternate name for the caliber's internal mechanism. *Prefer "caliber."*
 
-**Service request (SR)** — a unit of work the shop performs for a customer. The primary transactional entity.
+**Request** — a customer's incoming inquiry, before an estimate is created.
 
-**Estimate** — a price quote produced before work begins. Becomes a sales order if accepted.
+**Estimate** — a priced quote sent to the customer. Defines what work will be done. 99% of estimates go out before the watch arrives.
 
-**Sales order (SO)** — an accepted estimate; work is committed.
+**Job** — the actual work being performed on a watch.
 
-**Shop work order (SWO)** — an internal work order, distinct from a customer-facing sales order. Has its own QBO flow (see open items).
+**Work Order** — physical 3-color carbon paper, hand-written by Vianna, kept with components per department. **NOT a software concept.** Do not model in the rebuild.
+
+**3-Color Carbon Work Order** — same as Work Order. Each department takes a copy and keeps it with components; different colors per department. The *information captured on it* must be in the digital workflow, but the paper itself is not modeled.
+
+**Customer / Client** — interchangeable. Both terms used by all staff. No software distinction.
+
+**Sales Order (SO)** — created after final inspection. Triggers invoice + payment link.
+
+**Shop work order (SWO)** — internal vendor/outbound work order in RolliSuite (software concept). Distinct from the physical 3-color carbon Work Order. Has its own QBO flow (see WISHLIST W18).
 
 **Verification report** — the post-service document confirming testing results. Currently OCR-generated; future versions consume structured RolliTime data.
 
@@ -107,19 +133,32 @@ Stored today as four booleans on `client_property` (`dept_w`, `dept_b`, `dept_p`
 
 ## Status Terminology
 
-(To be reconciled across apps — many of these currently mean different things in RolliSuite vs. RolliWorking. Capture as found, normalize during rebuild.)
+Confirmed in use today on RolliWorking (more to be added via system mapping):
 
-_(Section to be filled in as workflow mapping uncovers actual status terms used.)_
+| Status | Meaning |
+|--------|---------|
+| **In Progress** | Actively being worked on |
+| **In Testing** | At RolliTime / timing station |
+| **Waiting Parts Approval** | Parts request submitted, awaiting client approval |
+| **Downgrade** | Moved backward (e.g. testing → in-progress) or warranty rework |
+| **Ready for Inspection** | Mike's final inspection step *(implied)* |
+| **Ready to Ship** | Post-invoice, awaiting shipment *(implied)* |
+
+Many statuses currently mean different things across RolliSuite vs RolliWorking — reconcile during rebuild. In code/schema use lowercase snake_case (`in_testing`, not `In Testing`).
 
 ---
 
 ## Roles (People)
 
-**Michael** — owner of Rolliworks. Product owner across all apps.
+**Michael** — owner of Rolliworks. Product owner across all apps. Receives Watch module, inspection, parts pricing approval, final inspection before invoicing.
 
-**Vianna** — front-of-house. Primary RolliConnect + RolliSuite (intake) user.
+**Vianna** — front-of-house. Primary RolliConnect + RolliSuite (intake) user. Shipping, intake, work order creation, watch storage.
 
 **Watchmaker Room Supervisor** — supervises bench watchmakers. Primary RolliWorking user. Owns caliber and reference master table promotions.
+
+**Fabian** — polish room operator. Vianna sets up his bench at end of day. Polish-only jobs route to him via a separate bin.
+
+**Concierge** — planned position (not yet filled). Responsible for rush jobs, small jobs, and outsourced work — categories that currently fall through the cracks. Will have a workflow distinct from the main bench flow. Likely benefits from AI agent assistance (M3KE / Jarvis).
 
 **Michael R. Michaels** — incoming partner, CW21-certified, previously Hublot / WatchBox / Govberg / Richemont.
 
@@ -127,24 +166,24 @@ _(Section to be filled in as workflow mapping uncovers actual status terms used.
 
 ## Process Terms
 
-**Intake** — the process of receiving a watch for service. Currently happens via the Receive Watch module in RolliSuite + front desk kiosk.
+**Intake** — the process of receiving a watch for service. Currently happens via Receive Watch / Receive Packages in RolliSuite + front desk kiosk.
 
 **Drop-off** — sub-flow of intake where a customer hand-delivers (vs. ships).
 
-**Pickup** — customer collecting their serviced watch. Includes signature comparison via kiosk.
+**Pickup** — customer collecting their serviced watch. Includes signature comparison via Pickup Station; intake photo comparison and exit photos.
 
-**Custody** — chain-of-possession of a watch between receipt and return. Tracked via `client_property` in RS.
+**Custody** — chain-of-possession of a watch between receipt and return. Tracked via `client_property` in RS. See W49 / D-015 for planned audit infrastructure.
 
 ---
 
 ## Conventions
 
-- Always write **RolliSuite** or **RolliSuite (RS)** — never "RS" alone in shared documents.
-- Always write **RepairShopr** in full — never abbreviate.
+- **RS** = RolliSuite. **RW** = RolliWorking. **RC** = RolliConnect. **RT** = RolliTime. **AA** = Authenticator.
 - "Caliber" not "movement" in code/schema (movement is a synonym for human-readable contexts only).
 - Reference numbers as strings, never integers (leading zeros matter: `0601` ≠ `601`).
 - Times in UTC in database, displayed in local time in UI.
 - Status enums are lowercase snake_case in code (`in_testing`, not `In Testing`).
+- **Work Order** (physical paper) ≠ **Shop work order (SWO)** (software vendor/outbound flow). Never conflate.
 
 ---
 

@@ -143,6 +143,29 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
+## D-015 — Chain-of-custody surveillance integration
+**Date:** 2026-06-25
+**Decision:** The rebuild includes a chain-of-custody surveillance layer. IP cameras integrate with the suite at the safe and at incoming-package stations. Every customer label scan logs to the security camera system, tagged with station ID and timestamp. Each scan is queryable: from a label scan, retrieve the corresponding video footage. A bulk safe-audit capability allows scanning every item in storage to confirm inventory.
+**Context:** Per Mike's final reflection, the single biggest operational risk in the shop today is "not knowing which job which tech has and for how long. Not knowing what's waiting in the safe. No trail or log for chain of custody within the shop." This is not a software bug — it's a missing system. Theft deterrence and accountability both require it. Solves multiple downstream problems: orphan-component detection, components-awaiting-other-components visibility, staff accountability.
+**Status:** Active (concept stage — implementation deferred to after core rebuild)
+**Scope:** Hardware: IP cameras at safe + each intake/pickup station. Software: scan-log → camera-frame query. Operational: bulk safe-audit workflow. Integration: tie to existing label scan flows in RS and pickup flows.
+**Dependencies:** Camera system selection (Nest, Reolink, dedicated NVR, etc.). Label-scan logging infrastructure (must exist in shared schema). Auth model for accessing footage (who can query, who can view).
+**Source:** Session 2026-06-25 — Mike's Final Reflection
+
+---
+
+## D-016 — QR-driven watchmaker bench workflow
+**Date:** 2026-06-25
+**Decision:** The watchmaker bench workflow is rebuilt around QR code scanning, not menu navigation. Each watchmaker has a small set of process QR codes physically present at their bench (In Testing, Downgrade, Parts Request — plus any others determined necessary). Workflow: scan watch ref-serial → scan process QR → action executes. Optimized for iPad gestures and fast bench work. Voice-to-text supports job notes for hands-busy contexts.
+**Context:** Today's RW uses a drop-down menu for status changes on iPad. The iPad UI is "basically a web view, not streamlined for iPad gestures." Per Mike: "scan 1601-743849 then process QR. Fast and easy." Reduces taps from ~5-7 to 2. Job notes and comments are currently missing from RW; voice-to-text + all-staff contribution closes the knowledge gap.
+**Status:** Active (depends on RolliWorking rebuild)
+**Scope:** Generate process QR codes (printed, physical at bench). Build scanner-first iPad UI for RW. Add job notes/comments table to shared schema. Voice-to-text integration (iOS native or web API).
+**Dependencies:** RolliWorking rebuild (the bench UI surface). Notes/comments writable by all RW users (auth + RLS). iPad camera-as-scanner working reliably (or external Bluetooth scanner).
+**Related:** D-008 (RolliTime integration — RW pulls testing data, related to In-Testing status). Wishlist W29–W30 (QR bench workflow, voice-to-text job notes).
+**Source:** Session 2026-06-25 — Watchmaker bench iPad observations
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.
