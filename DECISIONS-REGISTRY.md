@@ -166,6 +166,61 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
+## D-017 — Hybrid language strategy (TypeScript + Python)
+**Date:** 2026-06-25
+**Decision:** The Rolliworks ecosystem uses a hybrid language strategy. Customer-facing operational apps stay in TypeScript / React. Data, ML, AI, and computer-vision modules are built in Python (FastAPI).
+
+**Language assignments:**
+
+| App / Module | Language | Rationale |
+|---|---|---|
+| RolliSuite (RS) | TypeScript | Most complex existing codebase; integration-heavy; high rewrite risk; user-facing |
+| RolliWorking (RW) | TypeScript | iPad bench UI; tightly coupled to RS workflows |
+| RolliConnect (RC) | TypeScript | Customer-facing portal; web-first |
+| RolliTime (RT) | Python (FastAPI) | Data-heavy testing, OCR pipelines, dial-photo library mgmt, future ML training data source |
+| M3KE | Python | LLM / NLP work; already partially Python |
+| Authenticator | Python | Computer vision, ML training, image processing |
+| Jarvis | Python | LLM agent infrastructure |
+| RolliCurator | Python | Multi-AI orchestration, embeddings, consensus engine |
+| Shared Supabase (PostgreSQL) | Language-agnostic | All apps and modules connect via SDK / REST |
+
+**Context:** Two paths were considered: (a) keep everything in TypeScript matching the current Lovable stack, or (b) rebuild RS/RW/RC in Python for PE valuation upside. The hybrid path captures the Python advantages where they actually matter (ML, CV, data engineering) without the rewrite tax on three working operational apps. Strategic acquirer path (Richemont, Bucherer, watch industry consolidators) is more likely than PE — those buyers value operational integration over language choice, lowering the PE-premium argument. M3KE, Authenticator, Jarvis, and RolliCurator are all greenfield builds where Python is the right call regardless.
+
+**Architectural implications:**
+- All apps communicate via shared PostgreSQL (Supabase) — language boundary is at the database, not in app-to-app calls
+- Python modules expose REST/FastAPI endpoints when other modules need to consume their outputs
+- AI module schema (`ai_modules.*`) is the contract surface for Python modules
+- Authentication and RLS patterns work identically across both stacks (Supabase auth supports both SDKs)
+- Cross-app contracts (RolliTime ↔ RS, etc.) become language-agnostic API contracts, not shared-codebase imports
+
+**Status:** Active (foundational language strategy; informs all future build slices)
+
+**What this enables:**
+- Cleaner ML and CV integration for Authenticator and future authenticity scoring
+- Python ecosystem access for data engineering work (dial-photo library, training datasets)
+- Easier hiring for ML/data roles (Head of Applied AI, etc.)
+- Aligned with Rollie Group's AI-augmented operations direction
+
+**What this avoids:**
+- Multi-month rewrite of three working production apps (RS/RW/RC) into a new language
+- Operational risk of three simultaneous cutovers
+- Cursor + Opus context-window stress of redoing TypeScript work in Python
+- Loss of existing test, deployment, and Lovable-compatible infrastructure
+
+**Companion files to update:**
+- `CLAUDE.md` — add language-split note to architectural section
+- `GLOSSARY.md` — add Python/FastAPI as recognized stack alongside TS/React
+- `BUILD-PROCESS.md` — note that SPEC stage must identify target language for the slice
+- `FUTURE-INTEGRATIONS.md` — confirm Python module entries (M3KE, Jarvis, etc.) reflect the language
+
+**Open follow-ups (not decisions yet):**
+- Python module deployment target — Emergent supports Python, but specific hosting (Fly.io, Railway, separate) is TBD per module
+- Python skill files — when Phase 2/3 trigger fires, draft equivalents to the existing TS-focused skills (e.g., `modeling-canonical-data` is already language-agnostic; `reviewing-prs-governance` needs a Python-specific check section)
+
+**Source:** Session 2026-06-25 — strategic upside analysis + hybrid recommendation
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.
