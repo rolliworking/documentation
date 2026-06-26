@@ -10,6 +10,7 @@
 
 ### 1. RolliTime (watch testing program)
 **Status:** Spec'd. See `integrations/ROLLITIME-INTEGRATION.md` for full contract.
+**Language:** Python (FastAPI) per D-017.
 **Summary:** Owns testing data + dial-photo library. RS is source of truth for caliber/reference data. RolliTime pushes status to RW, exposes test results + photos to RS.
 **Reserved schema slots:** `shared.calibers`, `shared.reference_models`, `rollitime.*` (own DB per contract).
 
@@ -17,6 +18,7 @@
 
 ### 2. M3KE chatbot embedded in RS
 **Status:** M3KE v1 live as escalation tool. Chatbot-in-RS is next phase.
+**Language:** Python per D-017.
 **Produces:** Embeddings, classifications, interaction logs, escalations.
 **Reads:** RS data (currently JWT-blocked).
 **Reserved schema slot:** `ai_modules.m3ke_*`
@@ -25,6 +27,7 @@
 
 ### 3. Jarvis
 **Status:** Early / fuzzy.
+**Language:** Python per D-017.
 **Produces:** TBD.
 **Reads:** TBD.
 **Reserved schema slot:** `ai_modules.jarvis_*` (empty placeholder).
@@ -41,6 +44,7 @@
 
 ### 5. Authenticator App
 **Status:** Future. See `integrations/ROLLITIME-INTEGRATION.md` §5.
+**Language:** Python per D-017.
 **Reads:** RolliTime's dial-photo library (consumer, read-only).
 **Reserved schema slot:** None in shared DB (consumes RolliTime's API).
 
@@ -48,6 +52,7 @@
 
 ### 6. RolliCurator (knowledge harvest wizard)
 **Status:** Concept stage. See `concepts/ROLLICURATOR-CONCEPT.md`. Decision: D-012.
+**Language:** Python per D-017.
 **Summary:** Wizard module that pre-scrubs multiple AI sources, presents multiple-choice quizzes to humans, captures validated expertise into master tables.
 **Produces:** Validated entries on master tables; audit trails per contributor; high-value proprietary dataset.
 **Reads:** All master tables (`shared.*`, `rs.*` reference data); plus external AI APIs (ChatGPT, Opus, Perplexity, Gemini).

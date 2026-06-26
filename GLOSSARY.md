@@ -42,6 +42,16 @@
 
 ---
 
+## Technology Stack (D-017)
+
+**TypeScript / React** — primary stack for customer-facing operational apps: RolliSuite (RS), RolliWorking (RW), RolliConnect (RC). Existing Lovable-compatible codebase; integration-heavy; high rewrite risk if changed.
+
+**Python / FastAPI** — stack for data, ML, AI, and computer-vision modules: RolliTime (RT), M3KE, Authenticator (AA), Jarvis, RolliCurator. Greenfield or data-heavy workloads where the Python ecosystem is the right fit.
+
+**PostgreSQL (Supabase)** — language-agnostic data layer. All apps and modules connect via SDK or REST; cross-app contracts are API contracts, not shared imports. See D-017.
+
+---
+
 ## RolliSuite Modules & Screens
 
 **Daily Hit List** — central morning triage screen on RolliSuite. First thing Vianna checks each morning. Surfaces highest-priority items.
