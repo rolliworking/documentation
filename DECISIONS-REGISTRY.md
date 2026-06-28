@@ -221,9 +221,11 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
-## D-018 — Question snapshot discipline
-**Date:** 2026-06-28
-**Decision:** Questions accumulated in `HUMAN-QUEUE.md` (and the "Open questions" sections of discovery files) are periodically exported to dated Word documents in `documentation/queue-exports/`. Filename pattern: `QUESTIONS-YYYY-MM-DD.docx`. This is a permanent discipline, not a one-time export.
+## D-018 — Question snapshot discipline (amended 2026-06-28)
+**Date:** 2026-06-25 (initial), amended 2026-06-28
+**Decision:** Questions accumulated in `HUMAN-QUEUE.md` (and the "Open questions" sections of discovery files) are periodically exported to dated Word documents. Snapshots live in Dropbox at `G:\Dropbox\__AI\emergent-hq-human-queue\` to enable cross-device review and answering. The markdown source of truth (HUMAN-QUEUE.md, HUMAN-ANSWERS.md) stays in git.
+
+**Filename pattern:** `QUESTIONS-YYYY-MM-DD.docx`
 
 **Cadence — generate a new snapshot when any of these fire:**
 - Every 72 hours (alongside the build digest per BUILD-DIGEST-TEMPLATE.md)
@@ -231,21 +233,30 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 - Before any Opus planning session
 - Before any Qwen autonomous run lasting 4+ hours
 
-**Context:** Markdown question queues are hard to scan on mobile, hard to print, and don't enforce a review cadence. Word docs with answer-box formatting solve all three: scannable offline, printable, structured for human input. Word doc format also turns "questions accumulating" into a periodic ritual rather than an open-ended backlog.
+**Context:** Markdown question queues are hard to scan on mobile, hard to print, and don't enforce a review cadence. Word docs with answer-box formatting solve all three: scannable offline, printable, structured for human input. Saving to Dropbox (not the git repo) auto-syncs snapshots across all devices — Legion, work computer, iPad, phone — without manual copying. Answered docs return via the same Dropbox folder.
+
+**Why Dropbox, not the git repo:**
+- Word docs are binary; git history adds no value
+- Cross-device access without git pull/push overhead
+- Dropbox auto-sync removes manual save/copy steps
+- HUMAN-QUEUE.md and HUMAN-ANSWERS.md (the actual source of truth) remain in git
 
 **Roles:**
 - **Qwen / Cursor:** Logs questions to HUMAN-QUEUE.md in the format specified in QWEN.md
-- **Opus / Cursor:** Generates the Word doc snapshot on cadence
-- **Michael:** Answers questions in the Word doc during downtime
-- **Cursor:** Reads answered Word doc back and updates HUMAN-ANSWERS.md
+- **Opus / Cursor:** Generates the Word doc snapshot on cadence, saves to Dropbox
+- **Michael:** Opens the Word doc on any device (Dropbox auto-syncs it), answers questions during downtime
+- **Cursor:** Reads answered Word doc from Dropbox, updates HUMAN-ANSWERS.md in the repo, commits and pushes
 - **Qwen:** Reads HUMAN-ANSWERS.md at session start to unblock work
 
 **Folder structure:**
-- `documentation/queue-exports/QUESTIONS-YYYY-MM-DD.docx` — each snapshot
-- `documentation/queue-exports/README.md` — workflow documentation
+- `G:\Dropbox\__AI\emergent-hq-human-queue\` — root folder for snapshots
+- `G:\Dropbox\__AI\emergent-hq-human-queue\QUESTIONS-YYYY-MM-DD.docx` — each snapshot
+- `G:\Dropbox\__AI\emergent-hq-human-queue\answered\` — optional subfolder; move answered docs here once their answers have been extracted to HUMAN-ANSWERS.md (preserves historical record)
+- `documentation/queue-exports/README.md` (in repo) — redirect document pointing to the Dropbox location
 
 **Status:** Active
-**Source:** Session 2026-06-28
+**Supersedes:** Original D-018 (which placed snapshots in `documentation/queue-exports/` inside the repo)
+**Source:** Session 2026-06-28 amendment
 
 ---
 
