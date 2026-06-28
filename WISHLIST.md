@@ -19,6 +19,10 @@
 > **App key:** RC = RolliConnect · RS = RolliSuite · RW = RolliWorking · RT = RolliTime ·
 > AUTH = Authenticator app (future) · QBO = QuickBooks Online · M3KE / Jarvis = future modules.
 >
+> **ID convention:** New wishlist entries use hyphenated IDs (`W-##`), matching `D-###` and
+> `Q-###` in the decisions and questions registries. Legacy table rows from the Workflow Q&A
+> import use compact form (`W29`–`W49`); all new detailed entries use `W-##`.
+>
 > **Source:** Workflow Q&A additions (2026-06-25) merged below as W29–W49. See
 > `workflows/MICHAEL-WORKFLOW.md` and `workflows/VIANNA-WORKFLOW.md` for operational context.
 
@@ -77,7 +81,7 @@
 | W31 | `[CONSTRAINT]` | **7-day stagnation tracker.** Jobs received but not progressed within 7 days of receipt; surface in overview before Work Queue entry; note field + reset-7-day-timer. Backstop for staff accountability. *(Workflow Q&A Tier 2.)* |
 | W34 | `[CONSTRAINT]` | **Multi-estimate per shipping label at intake.** Customer ships own + friend's job on one label; assign incoming package to multiple estimate numbers. *(Workflow Q&A Tier 2.)* |
 
-### AI-assisted intake verification — scaffolding now, AI later (W-35)
+### AI-assisted intake verification — scaffolding now, AI later (W-36)
 **Source:** Session 2026-06-28 (follow-up to D-019 two-stage intake pattern)
 **Description:** Build the structural scaffolding for AI-assisted comparison of intake photos against staff-reported received components. AI reliability is not yet at theft-prevention grade (false positives too costly), so the AI step is deferred — but the scaffolding around it is built now so future activation is a switch-flip, not a rebuild.
 
@@ -131,7 +135,7 @@
 **Dependencies:**
 - D-019 (two-stage intake pattern) — defines where the scaffolding lives
 - D-015 (chain of custody / theft prevention) — defines why this matters
-- RolliTime dial photo library — first major consumer of photo discipline (other than W-35 itself)
+- RolliTime dial photo library — first major consumer of photo discipline (other than W-36 itself)
 - Future Authenticator app — likely supplier of the visual-reasoning model
 
 **Status:** Wishlist (scaffolded with D-019 build; AI activation pending tech maturity)
