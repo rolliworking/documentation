@@ -249,6 +249,60 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
+## D-019 — Two-stage intake pattern
+**Date:** 2026-06-28
+**Decision:** Intake is a two-stage process. Stage 1 captures possession; Stage 2 verifies and commits to inventory. The two stages are tracked separately and must be auditable against each other.
+
+**Stage 1 — Possession layer:**
+- Drop-off page (in-person intake) + Shipping Receive page (package arrivals) are the source of truth for "what physically arrived"
+- Captures: client, tracking number (if shipped), arrival photos, condition notes, who received it, when
+- Writes to: possession tables (rs.intake_possession or equivalent)
+- Status: "received" — meaning the item is in the building, but not yet committed to inventory
+
+**Stage 2 — Verification + inventory commit:**
+- Receive Watch page is a verification gate, not just a UI step
+- Verifies Stage 1 data matches physical reality (component count, condition, serial numbers)
+- On verification: commits the asset to inventory (writes to client_property or equivalent)
+- On disagreement: logs discrepancy to audit log, holds stage transition
+- Status: "verified" / "in_inventory" — meaning the item has cleared verification
+
+**Audit requirement:**
+- Every Stage 1 → Stage 2 transition writes to an audit log
+- Discrepancies (Stage 1 said X, Stage 2 confirmed Y) get explicit log entries with staff attribution
+- The audit log is searchable by client, asset, staff, date, and status
+- Foundation for the chain-of-custody system (D-015)
+
+**Context:** The current code conflates Stage 1 and Stage 2 — intake writes directly to client_property without an explicit verification gate. This is the upstream root cause of Shop Floor's "components aren't registered" failure and the absence of any theft-prevention audit trail. Michael's #1 operational risk per workflow capture (chain of custody / theft prevention) maps directly to this pattern.
+
+**Architectural implications:**
+- Schema must support both stages with explicit linking
+- A possession-stage record without a verification-stage record means an asset is "in the building but unverified"
+- A verification-stage record must reference its possession-stage record (FK)
+- Audit log table must exist as a shared.audit_log surface for cross-app querying
+- This is the foundation for the visual asset inventory layer (W-33) and the audit log (W-34)
+
+**Status:** Active (foundational architectural pattern; affects multiple rebuild slices)
+
+**What this enables:**
+- Theft prevention via auditable two-stage commit
+- Disagreement detection (when verification finds Stage 1 inaccuracies)
+- Multi-item intake with per-item verification
+- The visual asset layer per W-33 (every asset has a clear stage status)
+
+**What this avoids:**
+- Silent inventory writes without verification
+- The current "components aren't registered" Shop Floor failure root cause
+- Loss of accountability when assets move between staff
+
+**Companion files to update:**
+- `PLANNED-CODEBASE.md` — note the two-stage intake pattern in the RolliSuite operational section
+- `WISHLIST.md` — W-33 and W-34 (just added)
+- Future SPEC for intake rebuild — first SPEC under BUILD-PROCESS must reflect this
+
+**Source:** Session 2026-06-28, A-20260628-003 (Michael's answer to Q-20260626-003)
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.

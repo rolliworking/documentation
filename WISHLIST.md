@@ -218,4 +218,42 @@
 
 ---
 
+## From Q-001 answers (2026-06-28)
+
+### Estimate quote improvements (W-29)
+**Source:** A-20260628-001 (multi-estimate context)
+**Description:** Several improvements to the estimate quote workflow that would save staff time:
+- **Separated client notes field** — client notes and concerns should live in a dedicated field, not pasted into the line items. Currently c+p workflow wastes time and pollutes line item data.
+- **Separated shipping/drop-off/pick-up field** — these should be their own field so that part number search doesn't return every shipping product when searching unrelated terms.
+- **Client asset as separate line item type** — the client's incoming watch (e.g., "1601-38392") should be a separate line item type, not mixed with parts. Currently queries are noisy.
+- **Categorization** — line items need to be categorized so search returns relevant results, not everything.
+**Priority:** Medium (affects every estimate, time savings compound over hundreds per month)
+
+### Prevent duplicate client assets in inventory (W-30)
+**Source:** A-20260628-001
+**Description:** Currently, the same client asset (e.g., a specific watch by ref + serial) can be entered into inventory multiple times. This creates duplicate records and confusion downstream. Need validation on intake that prevents duplicate entry of the same physical asset.
+**Priority:** High (data integrity)
+
+### Multi-item intake auto-numbering (W-31)
+**Source:** A-20260628-002
+**Description:** When intake involves multiple watches or multiple components, add an "add another item" button that auto-numbers each item (1 of 2, 2 of 2, etc.). Each numbered item gets its own identifier even when grouped under one estimate, so components from different watches can be tracked independently.
+**Priority:** High (correctness of received-component tracking)
+
+### Husband/wife related-account handling (W-32)
+**Source:** A-20260628-001
+**Description:** When two related clients (typically spouses) ship together on one tracking number with separate accounts and separate estimates, the system needs a way to link the related accounts at intake — not just at billing. Currently this requires manual workarounds.
+**Priority:** Medium (occurs regularly, current process is brittle)
+
+### Visual client asset inventory layer (W-33)
+**Source:** A-20260628-005
+**Description:** Build a visual layer to see all client assets currently in possession: what's in the safe, what's at which station, what's with which watchmaker, what's released. Includes search by client, by ref, by serial, by status. This is the operator-facing surface for the chain-of-custody system (D-015).
+**Priority:** High (theft prevention, operational visibility — Michael's #1 risk per workflow capture)
+
+### Intake-to-inventory audit log (W-34)
+**Source:** A-20260628-003 + D-019
+**Description:** The two-stage intake pattern (Drop-off/Shipping Receive → Receive Watch) requires an audit log that records every disagreement, override, and confirmation between Stage 1 (possession) and Stage 2 (verification + inventory commit). Searchable by date, client, staff, asset. Foundation for theft prevention and accountability.
+**Priority:** High (D-015 dependency, audit requirement)
+
+---
+
 _End of wishlist. Living document._
