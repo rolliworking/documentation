@@ -76,6 +76,70 @@
 | W24 | `[CONSTRAINT]` | **Organize trade-account photos by Est#.** Trade accounts accumulate hundreds of photos; organize by estimate number. *(See also W48 for date-based galleria folders — some clients have 30–50 watches × 10–40 photos each.)* |
 | W31 | `[CONSTRAINT]` | **7-day stagnation tracker.** Jobs received but not progressed within 7 days of receipt; surface in overview before Work Queue entry; note field + reset-7-day-timer. Backstop for staff accountability. *(Workflow Q&A Tier 2.)* |
 | W34 | `[CONSTRAINT]` | **Multi-estimate per shipping label at intake.** Customer ships own + friend's job on one label; assign incoming package to multiple estimate numbers. *(Workflow Q&A Tier 2.)* |
+
+### AI-assisted intake verification — scaffolding now, AI later (W-35)
+**Source:** Session 2026-06-28 (follow-up to D-019 two-stage intake pattern)
+**Description:** Build the structural scaffolding for AI-assisted comparison of intake photos against staff-reported received components. AI reliability is not yet at theft-prevention grade (false positives too costly), so the AI step is deferred — but the scaffolding around it is built now so future activation is a switch-flip, not a rebuild.
+
+**What gets built now (scaffolding):**
+
+1. **Photo capture discipline**
+   - Standard angles enforced at Stage 1: dial view, caseback view, profile/side view, components-separated view (when multi-item)
+   - Every photo linked to: ref-serial, estimate ID, intake stage (possession vs verification), photographer, station ID, timestamp
+   - High-resolution storage (no compression on Stage 1 photos — they may train future models)
+   - Photo metadata exposed via shared.intake_photos with all linking fields above
+
+2. **Schema slot for AI-detected items**
+   - `intake_photos.ai_detected_items` (JSONB, nullable) — populated when AI is wired in; empty until then
+   - `intake_photos.ai_confidence` (numeric, nullable) — same pattern
+   - `intake_photos.ai_model_version` (text, nullable) — for tracking which model produced which detection
+   - `intake_photos.ai_run_at` (timestamptz, nullable) — when AI processed this photo
+   - All nullable, no current code depends on them being populated
+
+3. **UI hook in the verification gate (Stage 2)**
+   - Receive Watch page has a placeholder area for "AI-detected items" warning banner
+   - When ai_detected_items is null (current state), banner doesn't render
+   - When ai_detected_items is populated (future state), banner compares against staff's received_items list and highlights mismatches
+   - Toggle in Setup/Admin to enable/disable globally
+
+4. **Audit-log integration**
+   - When the AI banner fires (future state), every staff override or acknowledgment logs to shared.audit_log per D-019
+   - Pattern of overrides over time becomes a queryable signal (no accusation, just data)
+
+**What's deferred (AI activation):**
+
+- The actual call to a vision model (Gemini Flash, Claude Haiku, or specialized authenticator-grade model)
+- The comparison logic between AI output and staff-reported items
+- Confidence thresholds for when to show the banner
+- The training-data pipeline that improves the model over time
+
+**Activation triggers (when to wire AI in):**
+
+- Vision models reliably distinguish "watch head only" vs "complete watch" without false positives at >95% accuracy on Rolliworks intake photos
+- Or the Authenticator app (Year 1 build plan) matures component detection to that bar via internal training
+- Or operator decides the Tier 1 soft-warning version (just flagging "review needed" on category mismatches) is good enough — that's achievable today and could ship sooner if priorities shift
+
+**Why scaffold now, even though AI isn't ready:**
+
+- Photo discipline established at Stage 1 immediately compounds in value — the photo library accumulates as training data
+- Schema migrations later are more expensive than schema slots reserved now
+- The verification gate UI surface is being built anyway per D-019; adding the placeholder area costs ~10 minutes more than not
+- D-015 (chain of custody) and D-019 (two-stage intake) both benefit from photo discipline regardless of AI
+
+**Priority:** Medium — scaffolding work folds into D-019 build; AI activation is its own future decision
+
+**Dependencies:**
+- D-019 (two-stage intake pattern) — defines where the scaffolding lives
+- D-015 (chain of custody / theft prevention) — defines why this matters
+- RolliTime dial photo library — first major consumer of photo discipline (other than W-35 itself)
+- Future Authenticator app — likely supplier of the visual-reasoning model
+
+**Status:** Wishlist (scaffolded with D-019 build; AI activation pending tech maturity)
+
+**Related:**
+- W-33 (visual asset inventory layer) — UI surface where AI mismatches would surface
+- W-34 (intake-to-inventory audit log) — where AI/human disagreements get logged
+
 | W35 | `[BACKLOG]` | **PO split for back-orders.** Accept received items; split outstanding items into a new separate PO. Today PO stays open with received + outstanding mixed. *(Workflow Q&A Tier 2.)* |
 | W36 | `[BACKLOG]` | **Backfill flow for items received without estimates.** Today Vianna sets aside, Mike creates estimate after the fact; need a real receive-without-estimate process. *(Workflow Q&A Tier 2.)* |
 | W41 | `[BACKLOG]` | **Pickup Station IP cam / Nest integration.** After QR scan at pickup, auto-snap photos of customer leaving with item; audit trail for completed pickups. *(Workflow Q&A Tier 5.)* |
