@@ -221,6 +221,34 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
+## D-018 — Question snapshot discipline
+**Date:** 2026-06-28
+**Decision:** Questions accumulated in `HUMAN-QUEUE.md` (and the "Open questions" sections of discovery files) are periodically exported to dated Word documents in `documentation/queue-exports/`. Filename pattern: `QUESTIONS-YYYY-MM-DD.docx`. This is a permanent discipline, not a one-time export.
+
+**Cadence — generate a new snapshot when any of these fire:**
+- Every 72 hours (alongside the build digest per BUILD-DIGEST-TEMPLATE.md)
+- When HUMAN-QUEUE.md has 10+ open questions
+- Before any Opus planning session
+- Before any Qwen autonomous run lasting 4+ hours
+
+**Context:** Markdown question queues are hard to scan on mobile, hard to print, and don't enforce a review cadence. Word docs with answer-box formatting solve all three: scannable offline, printable, structured for human input. Word doc format also turns "questions accumulating" into a periodic ritual rather than an open-ended backlog.
+
+**Roles:**
+- **Qwen / Cursor:** Logs questions to HUMAN-QUEUE.md in the format specified in QWEN.md
+- **Opus / Cursor:** Generates the Word doc snapshot on cadence
+- **Michael:** Answers questions in the Word doc during downtime
+- **Cursor:** Reads answered Word doc back and updates HUMAN-ANSWERS.md
+- **Qwen:** Reads HUMAN-ANSWERS.md at session start to unblock work
+
+**Folder structure:**
+- `documentation/queue-exports/QUESTIONS-YYYY-MM-DD.docx` — each snapshot
+- `documentation/queue-exports/README.md` — workflow documentation
+
+**Status:** Active
+**Source:** Session 2026-06-28
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.
