@@ -314,6 +314,47 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 
 ---
 
+## D-020 — Silent failure is a banned pattern; Receive Watch is component source of truth
+
+**Date:** 2026-06-28
+**Decision:** Two related architectural commitments emerging from QBO investigation and intake workflow answers:
+
+**Part A — Silent failure is banned.** Every async job, cron, webhook, edge function, and background task in the rebuild MUST produce observable success/failure status. Writes that return HTTP 200 while the durable record is silently empty are unacceptable. Specifically prohibited patterns:
+- INSERT failures that proceed to UPDATE-with-zero-rows-affected without erroring
+- Cron functions that log "started" but never reach "success" or "failed"
+- Webhook handlers that fail-open when configuration is missing
+- Schema drift between code writers and table constraints
+
+Every long-running job must have: visible monitoring, explicit timeout handling, idempotent operations, chunked processing where dataset size warrants it, and durable audit trail entries written BEFORE the operation begins (not after).
+
+**Part B — Receive Watch is the source of truth for component creation.** Component records (whatever the rebuild calls them — `job_components`, `intake_components`, etc.) must be created at the Receive Watch verification stage (Stage 2 of D-019's two-stage intake pattern). They must NOT be derived from estimate markers, item types, or upstream RW intake hooks. The operator selecting components at Receive Watch is the canonical creation event.
+
+**Context:** Lovable AI's audit of the QBO integration confirmed a recurring "silent failure" pattern: code writes return success while durable records are missing. The customer sync cron has been broken since 2026-01-12 (162 stuck rows). The qbo_sync_log CHECK constraint silently rejects invoice rows. The `finished_at` column phantom write silently fails. This is the same pattern previously found in inspection-supersession and estimate-immutability investigations.
+
+Combined with Michael's confirmation that estimate markers are merely "suggestions" and Receive Watch backfills the classification, the rebuild architecture must enforce: (a) writes that mean nothing on success must be eliminated, (b) component data of record is created at human verification time, not derived from upstream hints.
+
+**Architectural implications:**
+- Every cron in the rebuild has a `runs` table tracking start/end/status/payload
+- Every webhook handler logs the raw payload BEFORE dispatch
+- Every CHECK constraint must match what the codebase writes (or vice versa)
+- The Shop Floor data model uses station_id as a first-class authoritative field, not derived from status+department heuristics
+- The Receive Watch page UI must include component creation controls with department selection
+- The rollisuite-intake edge function (legacy boundary between RS and RW) becomes a sync/notification mechanism, not a creator
+
+**Status:** Active (foundational pattern; affects every async/durable-write path in the rebuild)
+
+**Companion items:**
+- Q-005 answer (A-20260628-010) — customer cron silent failure evidence
+- Q-005-B answer (A-20260628-011) — qbo_sync_log schema drift evidence
+- Q-004-1 answer (A-20260628-006) — estimate markers are suggestions
+- Q-004-3 answer (A-20260628-008) — Receive Watch as component creator
+- W-37 — Shop Floor drag-and-drop GUI (depends on station_id being authoritative)
+- PROD-FIX-001 — patches the qbo_sync_log drift in the current Lovable app
+
+**Source:** Session 2026-06-28 (PM), Lovable AI audit + Michael's answers
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.

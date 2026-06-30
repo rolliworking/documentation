@@ -45,9 +45,9 @@
 |------|-------|--------------|
 | 1 | Chain of custody / theft prevention | W49, W7 |
 | 2 | High-leverage workflow gaps | W29–W36 |
-| 3 | Watchmaker bench improvements | W26, W27, W37 |
-| 4 | Performance + accountability | W39, W40 |
-| 5 | Pickup + handoff polish | W41, W42 |
+| 3 | Watchmaker bench improvements | W26, W27, W37, W-37 |
+| 4 | Performance + accountability | W39, W40, W-39 |
+| 5 | Pickup + handoff polish | W41, W42, W-38 |
 | 6 | Communication + data polish | W12, W16, W43–W48 |
 
 ---
@@ -143,6 +143,24 @@
 **Related:**
 - W-33 (visual asset inventory layer) — UI surface where AI mismatches would surface
 - W-34 (intake-to-inventory audit log) — where AI/human disagreements get logged
+
+### Shop Floor drag-and-drop GUI (W-37)
+**Source:** A-20260628-007 (Q-004-2)
+**Description:** Build a drag-and-drop GUI for Shop Floor station management. Staff must be able to manually move components between stations to handle exceptions: client cancels/aborts (move to safe), client changes mind (move from safe back into queue). Flow is typically right-to-left, but the exceptions are real and recurring. The GUI must be usable by non-developer staff — they understand visual interfaces, not code or status menus.
+**Priority:** High (Shop Floor cannot function reliably without manual override capability)
+**Dependencies:** Rebuild's station_id authoritative field (D-020), component data model
+
+### Side-by-side intake/return photo comparison at pickup (W-38)
+**Source:** A-20260628-014 (Q-006-A)
+**Description:** At pickup time, display intake photos (drop-off or shipping receive — both as "before") alongside the items being released at pickup ("after"). Operator visually confirms the right items are being returned. Mislabeling errors during return do happen and this comparison would prevent them.
+**Priority:** High (theft and mislabeling risk; foundational to D-015 chain of custody)
+**Dependencies:** D-019 (two-stage intake with photos as Stage 1 evidence), unified intake photo source
+
+### Scale planning to 100k+ customers (W-39)
+**Source:** A-20260628-010 (Q-005-A addendum from Michael)
+**Description:** The rebuild's data model and sync paths must be designed for 100k+ customers, not just the current ~10k. This affects: customer sync chunking strategy, indexing, RLS policy performance, search/filter UX, and any operation that touches the full customer set (reports, audits, exports). Cron-driven full-scan operations must be replaced with chunked, idempotent, monitored equivalents.
+**Priority:** Medium (not blocking but informs every schema and sync design decision)
+**Dependencies:** Canonical data model design, sync architecture (D-020), customer master plan
 
 | W35 | `[BACKLOG]` | **PO split for back-orders.** Accept received items; split outstanding items into a new separate PO. Today PO stays open with received + outstanding mixed. *(Workflow Q&A Tier 2.)* |
 | W36 | `[BACKLOG]` | **Backfill flow for items received without estimates.** Today Vianna sets aside, Mike creates estimate after the fact; need a real receive-without-estimate process. *(Workflow Q&A Tier 2.)* |
