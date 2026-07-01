@@ -481,6 +481,34 @@ This supersedes the earlier framing that RS `client_property` and RW `job_compon
 
 ---
 
+## D-023 — Transferability Test as SPEC design gate
+
+**Date:** 2026-06-30
+**Decision:** Every SPEC must pass the five-question Transferability Test (Absence, Mike, Onboarding, Handoff, Multiplication) before it locks. Failures are redesigned or documented as time-bounded waivers in `TRANSFERABILITY-WAIVERS.md`. The test is re-verified at BUILD ship and on a 3–6 month sample of live systems.
+
+**Context:** Rolligroup's exit thesis requires 90% operational quality after Michael Hui and Michael Michaels transition out of daily operations. Technical decisions that increase dependence on either individual undermine acquirability. This gate operationalizes that constraint without replacing code review, acceptance criteria, or performance testing.
+
+**What this enables:**
+- SPEC authors surface hidden "ask Michael" dependencies before build
+- Waivers make acceptable short-term human dependencies explicit and time-bounded
+- BUILD slices are checked against the same tests the SPEC promised
+
+**Architectural implications:**
+- Every `01-SPEC.md` includes a Transferability Test Results section
+- Approval workflows, escalation paths, and configuration must be role-based and documented
+- Mike-level expertise routes through RolliCurator, decision trees, or defined technical review — not ad hoc texts
+
+**Companion items:**
+- `TRANSFERABILITY-TEST.md` (full doctrine and pass/fail examples)
+- `TRANSFERABILITY-WAIVERS.md` (waiver tracker)
+- `BUILD-PROCESS.md` Stage 1 exit criteria
+- D-018 (judgment captured as answers), D-020 (no silent failure), D-022 (auditable assembly state)
+
+**Status:** Active
+**Source:** Session 2026-06-30
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.
