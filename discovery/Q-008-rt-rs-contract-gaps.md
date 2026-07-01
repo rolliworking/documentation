@@ -338,15 +338,23 @@ All keys rotatable; stored in Supabase secrets per project. **No shared database
 
 ## 11. Open questions
 
-### Q-008-A: Should RT→RS test results write to legacy `timing_tests` or new `shared.timing_test_results`?
+### Q-008-A: Where should RolliTime save finished test results?
 
 **Type:** schema
-**Default:** New shared table; legacy RS job tests remain for historical jobs only.
+**Question:** When RolliTime finishes testing a watch, should the result be saved to the existing timing test table in RolliSuite, or to a new one built as part of the rebuild? The existing one has old data and legacy quirks. The new one is cleaner but nothing reads from it yet.
+**Why it matters:** Watchmakers and clients see test results on the customer file. Picking the wrong storage means duplicate records or broken history when we cut over.
+**What I observed:** RolliSuite already has timing test records from before RolliTime existed. RolliTime's data shape (batch, segment, reading) is different and richer. *(Technical: legacy timing_tests vs proposed shared.timing_test_results.)*
+**My best guess:** New table for RolliTime-fed results; keep old table read-only for historical jobs.
+**Default if no answer in 7 days:** New shared table; legacy RS job tests remain for historical jobs only.
 
-### Q-008-B: Realtime vs poll for RS→RT reference sync?
+### Q-008-B: How should RolliTime get the latest caliber data from RolliSuite?
 
 **Type:** operational
-**Default:** Poll delta every 15m + on-demand lookup at scan; Realtime optional later.
+**Question:** How should RolliTime get the latest caliber and reference data from RolliSuite? Three options: (1) RolliSuite pushes updates the instant they change, (2) RolliTime asks RolliSuite for updates every 15 minutes, or (3) RolliTime asks RolliSuite fresh every time someone scans a watch at the testing station. Caliber data drives what's considered "in tolerance" during testing, so stale data means wrong tolerances.
+**Why it matters:** Wrong tolerance thresholds mean watches pass or fail incorrectly — a customer-facing quality issue.
+**What I observed:** No live connection exists today; RolliTime was seeded from a spreadsheet. RolliSuite is designated the authoritative source going forward. *(Technical: Realtime subscription vs poll vs on-demand lookup.)*
+**My best guess:** Poll every 15 minutes plus a fresh lookup at scan time; instant push can come later if needed.
+**Default if no answer in 7 days:** Poll delta every 15m + on-demand lookup at scan; instant push optional later.
 
 ---
 

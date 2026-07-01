@@ -113,10 +113,14 @@ Backfill is always **two-step:** possession → estimate elsewhere → link.
 
 ## 10. Open questions
 
-### Q-015-A: Should no-estimate possession auto-expire or escalate after N days?
+### Q-015-A: How long should a package sit without an estimate before staff get alerted?
 
 **Type:** operational
-**Default:** 7-day stagnation tracker (W-31 table) applies to possession-without-estimate rows.
+**Question:** When a package arrives but no estimate exists yet (Vianna sets it aside, Mike creates the estimate later), should the system automatically flag or escalate the package after a certain number of days — similar to the 7-day stagnation tracker for jobs that haven't moved?
+**Why it matters:** Packages without estimates can sit invisible in the safe indefinitely. Staff forget they arrived; customers wonder where their watch is.
+**What I observed:** The system can save possession records without an estimate, but Receive Watch won't commit the watch to inventory until an estimate exists. No automatic reminder fires for how long possession-without-estimate has waited. *(Technical: needs_review status on package_arrival_scans.)*
+**My best guess:** Apply the same 7-day stagnation rule — surface on the daily hit list until an estimate is linked.
+**Default if no answer in 7 days:** 7-day stagnation tracker applies to possession-without-estimate rows.
 
 ---
 

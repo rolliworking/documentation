@@ -248,15 +248,23 @@ W-36 AI scaffolding (`ai_detected_items` on intake photos) attaches to Stage 1 r
 
 ## 15. Open questions
 
-### Q-009-A: Migrate historical intake photos to R2 or keep Supabase Storage?
+### Q-009-A: Should old intake photos be moved to the same storage as inspection photos?
 
 **Type:** infrastructure
-**Default:** Keep Stage 1 on Supabase; unify via index table only (cheaper migration).
+**Question:** When packages and drop-offs arrive, photos are stored in one place. Inspection photos (through the microscope) are stored in another (Cloudflare). For the rebuild, should we move all the old arrival photos into the inspection storage system, or keep them where they are and just build an index that points to both?
+**Why it matters:** Moving thousands of photos is expensive and risky. An index-only approach is faster but means two storage systems forever.
+**What I observed:** Arrival photos live in Supabase file storage; inspection photos live in Cloudflare R2. Pickup "before" photos need both sources. *(Technical: attachments bucket vs inspections-photos R2.)*
+**My best guess:** Keep arrival photos where they are; unify with a shared photo index table (D-019 Stage 1).
+**Default if no answer in 7 days:** Keep Stage 1 on Supabase; unify via index table only (cheaper migration).
 
-### Q-009-B: Should pickup before/after require paired photo counts (1:1)?
+### Q-009-B: At pickup, should staff be required to take the same number of exit photos as intake photos?
 
 **Type:** UX policy
-**Default:** Soft warning if before count > 0 and after count = 0; hard block per W-38 only on operator ack checkbox.
+**Question:** When a customer picks up their watch, staff compare intake photos (before) with photos taken at release (after). Should the system require one exit photo for every intake photo, warn if counts don't match, or just show whatever exists and let staff decide?
+**Why it matters:** Too strict slows down pickup; too loose defeats the mislabeling prevention goal (W-38).
+**What I observed:** Exit photos are captured today; intake photos are partial; no pairing validation exists. *(Technical: pickup_sessions.pickup_photo_urls vs package_scan_logs.)*
+**My best guess:** Show a warning if intake photos exist but no exit photos captured; require staff to check a confirmation box before completing pickup.
+**Default if no answer in 7 days:** Soft warning if before count > 0 and after count = 0; hard block only on operator acknowledgment checkbox.
 
 ---
 

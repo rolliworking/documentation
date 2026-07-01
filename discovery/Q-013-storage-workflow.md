@@ -185,16 +185,22 @@ This discovery maps **every digital location state** the software tracks versus 
 
 ## 10. Open questions
 
-### Q-013-A: Should safe bins be modeled as `station_id` values or a separate `storage_slot` entity?
+### Q-013-A: How should we represent safe bin locations in the system?
 
 **Type:** schema
-**Why it matters:** W-37 GUI needs drop targets; safe has due-date ordering Vianna uses today.
-**Default if no answer in 7 days:** Reuse `station_id` namespace (`safe_bin_A1`, …) with `department: safe_storage`.
+**Question:** Vianna sorts watches into safe bins by due date. For the drag-and-drop shop floor GUI (W-37), should each physical safe bin become a named station staff can drag components onto, or should bins be a separate "storage slot" concept from workshop stations?
+**Why it matters:** Safe bins need due-date ordering for morning retrieval. Workshop stations need left-to-right flow. Using the same data model for both might confuse staff or break sorting.
+**What I observed:** The system knows a component is "in safe" but not which bin or shelf slot. Only one generic safe QR code exists. *(Technical: in_safe status without bin ID; SAFE:main scanner.)*
+**My best guess:** Name safe bins as stations in the safe-storage area (e.g., safe_bin_A1) so W-37 drag targets work without a second concept.
+**Default if no answer in 7 days:** Reuse station_id namespace (safe_bin_A1, …) with department safe_storage.
 
-### Q-013-B: Is RS `client_property` or RW `job_components` the canonical row for W-33 visual inventory?
+### Q-013-B: Which record should the "what's in the building" screen center on?
 
 **Type:** architectural
-**Why it matters:** Two parallel models today; W-33 needs one operator-facing spine.
+**Question:** RolliSuite tracks customer assets (one record per watch in the building). RolliWorking tracks individual components (watch head, bracelet, case) moving through stations. For the visual inventory screen (W-33), which should be the main record staff see — the customer asset, the component, or a linked view of both?
+**Why it matters:** Two parallel systems today show different pictures of the same physical watch. Staff need one screen to answer "what's in the safe, what's at which station, what's with which watchmaker."
+**What I observed:** RolliSuite knows custody in/out; RolliWorking knows station and department; no link between them. *(Technical: client_property vs job_components, no FK.)*
+**My best guess:** Customer asset as the main card, with component children linked underneath (D-019/D-020).
 **Default if no answer in 7 days:** RS asset record + linked component children per D-019/D-020.
 
 ---

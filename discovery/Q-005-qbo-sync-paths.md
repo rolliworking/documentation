@@ -244,35 +244,29 @@ OAuth tokens live in `qbo_tokens`. Background sync audit lives in `qbo_sync_log`
 
 ### Q-005-A: Is customer cron actually completing?
 
-**Type:** operational truth
-**Question:** Do `qbo_sync_log` rows for `sync_type = 'customer'` reach `success`, or remain stuck at `started`?
-**Why it matters:** Dossier §0.1 flags customer cron as suspect. Stuck rows indicate timeout or logging bug.
-**What I observed:** Cron inserts `started` then updates in inner try/catch; outer catch and edge timeout leave orphan `started` rows. Per-customer upsert loop over ~10k records is slow.
-**Default if no answer in 7 days:** Treat cron customer pull as unreliable; preserve push-on-fulfill as canonical.
+**Status:** answered (A-20260628-010)
 
-### Q-005-B: Was `qbo_sync_log` CHECK altered in production for `invoice` type?
+### Q-005-B: Was qbo_sync_log CHECK altered in production for invoice type?
 
-**Type:** schema
-**Question:** Does production allow `sync_type = 'invoice'`?
-**Why it matters:** `qbo-invoice-sync` inserts `sync_type: "invoice"` but migration CHECK only allows `customer`, `estimate`.
-**What I observed:** No migration in repo alters the constraint.
-**Default if no answer in 7 days:** Assume logging is broken for invoice sync unless prod was patched manually.
+**Status:** answered (A-20260628-011)
 
-### Q-005-C: What is the actual cron schedule in Supabase dashboard?
+### Q-005-C: What is the actual scheduled time for QuickBooks sync jobs?
 
 **Type:** ops
-**Question:** Does 6 AM UTC job call only `qbo-cron-sync`, or also `qbo-invoice-sync` with `triggered_by: "cron"`?
-**Why it matters:** Invoice pull supports cron trigger but UI says only customers + estimates.
-**What I observed:** No `cron.schedule` SQL in migrations; schedule lives outside git.
-**Default if no answer in 7 days:** Document as dashboard-only config.
+**Question:** What time of day does the automatic QuickBooks customer sync actually run, and does it also pull invoices on a schedule or only customers and estimates?
+**Why it matters:** Staff need to know when overnight sync happens so they can trust customer data in the morning. If invoice sync is supposed to run automatically but isn't scheduled, invoices may never update without someone clicking manually.
+**What I observed:** The sync schedule is configured in the hosting dashboard, not in the code we can read from git. The invoice sync code supports an automatic trigger, but the settings screen only mentions customers and estimates. *(Technical: no cron.schedule in migrations.)*
+**My best guess:** One daily job syncs customers only; invoice sync is manual unless someone added a second schedule in the dashboard we can't see.
+**Default if no answer in 7 days:** Document the schedule as dashboard-only configuration and don't assume invoice auto-sync exists.
 
-### Q-005-D: PO QBO push adoption rate?
+### Q-005-D: How many purchase orders actually made it into QuickBooks?
 
 **Type:** operational truth
-**Question:** How many received POs have `qbo_bill_id` or JE notes populated?
-**Why it matters:** Dossier says PO sync is "unconfirmed" low-volume.
-**What I observed:** Manual-only path; Bill step can fail independently of JE.
-**Default if no answer in 7 days:** Keep PO path as manual accounting bridge; don't cron.
+**Question:** Of the purchase orders we've marked as received in RolliSuite, how many have a matching bill or journal entry in QuickBooks?
+**Why it matters:** If almost none do, the PO-to-QuickBooks path is a manual workaround and shouldn't be built into automatic workflows until we know it's worth fixing.
+**What I observed:** PO push to QuickBooks only happens when someone triggers it manually. The bill step and the journal-entry step can fail independently, so partial success is possible. *(Technical: qbo_bill_id and JE notes on purchase_orders table.)*
+**My best guess:** Very low adoption — accounting uses this ad hoc, not as a daily process.
+**Default if no answer in 7 days:** Keep PO sync as a manual accounting bridge; don't invest in automatic scheduling yet.
 
 ---
 

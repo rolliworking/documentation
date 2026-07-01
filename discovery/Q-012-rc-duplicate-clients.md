@@ -116,10 +116,14 @@ After fix: lookup by `rs_customer_id` finds existing row; email updated canonica
 
 ## 6. Open questions
 
-### Q-012-A: Should conversation reuse be "any open conversation" or "open conversation for same estimate/job"?
+### Q-012-A: When a returning customer submits a new request, reuse the old conversation or start fresh?
 
 **Type:** UX
-**Default:** Reuse most recent open conversation for `client_id`; staff can split manually.
+**Question:** When a customer who already exists in RolliConnect submits a new web form or portal request, should their message join their existing conversation thread, or always start a new separate thread?
+**Why it matters:** Today every new submission creates a new thread even for the same person — staff see fragmented conversations and think they have duplicate clients. But reusing threads might mix unrelated jobs together.
+**What I observed:** The intake router always creates a new conversation row, even when it finds an existing client by email. About 13% of clients already have multiple threads. *(Technical: portal-intake-router always INSERT conversations.)*
+**My best guess:** Reuse the most recent open conversation for that client; staff can manually split if it's a genuinely new topic.
+**Default if no answer in 7 days:** Reuse most recent open conversation for client_id; staff can split manually.
 
 ---
 

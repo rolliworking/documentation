@@ -94,17 +94,23 @@
 
 ## 6. Open questions
 
-### Q-007-A: Should transactional emails use reply-token RC routing instead of noreply?
+### Q-007-A: Should customer emails route replies back into RolliConnect?
 
 **Type:** architectural
-**Why it matters:** Vianna's #1 email pain — replies to shipping/estimate emails don't land in RC.
-**Default:** Rebuild uses per-send RC conversation token in Reply-To header (W-44 pattern).
+**Question:** Most outgoing emails send from a "noreply" address, but customers reply anyway — and those replies don't show up in RolliConnect. Should rebuild emails use a reply address that automatically lands in the customer's RolliConnect conversation thread?
+**Why it matters:** Vianna's top email pain point: staff miss client replies to shipping notifications and estimates because they go to a general inbox instead of the customer file.
+**What I observed:** Every customer email uses noreply@ with reply-to set to help@. RolliConnect has a token-based reply routing system for portal messages but transactional emails don't use it. *(Technical: W-44 CC/BCC into RC threads.)*
+**My best guess:** Rebuild puts a unique reply token in the Reply-To header so replies attach to the right RC conversation.
+**Default if no answer in 7 days:** Rebuild uses per-send RC conversation token in Reply-To header.
 
-### Q-007-B: Where should bulk testing-complete email live — RS or RW?
+### Q-007-B: Who should send the bulk "testing complete" email — RolliSuite or RolliWorking?
 
 **Type:** scope
-**Why it matters:** Michael wants one-button bulk send from RW finished jobs; template seeded on RS.
-**Default:** RW UI triggers RS `send-testing-complete-batch` edge function with observable log.
+**Question:** Michael wants a one-button bulk email when multiple watches finish testing. The email template lives in RolliSuite, but watchmakers work in RolliWorking. Should the button live in RolliWorking (calling RolliSuite to send) or should RolliSuite own the whole flow?
+**Why it matters:** Wrong placement means watchmakers can't reach the feature, or duplicate email infrastructure gets built.
+**What I observed:** Template "Work Completed - Sales Order" exists in RolliSuite's template table but the send function was never built. Testing-complete workflow today is manual. *(Technical: send-so-email missing; RW status complete trigger.)*
+**My best guess:** Button in RolliWorking; RolliWorking calls a RolliSuite send function with an audit log per D-020.
+**Default if no answer in 7 days:** RW UI triggers RS send-testing-complete-batch with observable log.
 
 ---
 

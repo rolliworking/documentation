@@ -216,20 +216,23 @@ If `job_components.length === 0` or wrong types → "No components on this job" 
 
 ## 10. Open questions
 
-### Q-011-A: Should `received_components` drive `job_components` row creation at intake?
+### Q-011-A: Should staff's component checklist drive what gets registered in the shop system?
 
 **Type:** scope
-**Question:** Should RW `rollisuite-intake` map `payloadReceivedComponents` to component types instead of (or in addition to) flow-based INSERT blocks?
-**Why it matters:** A-20260628-002 says derive from actual components; current code ignores them.
-**What I observed:** Parsed L549–564, stored on jobs, never used for INSERT.
-**Default if no answer in 7 days:** Add mapping as medium-risk fix after markerless flow fix.
+**Question:** When staff check off what physically arrived (watch head, bracelet, case), should that checklist directly create the shop-floor tracking records — instead of the system guessing from the estimate's department markers?
+**Why it matters:** Today the shop floor often shows the wrong components because the system ignores what staff actually confirmed and instead follows estimate markers that are wrong about 10% of the time.
+**What I observed:** Staff selections are saved as text notes on the customer asset record. The shop system receives the data but creates component records based on estimate flow, not the checklist. *(Technical: received_components parsed but unused in rollisuite-intake.)*
+**My best guess:** In the rebuild, Receive Watch creates components from the checklist (D-020). For the legacy app, adding checklist-driven creation is a medium-risk hotfix after the markerless estimate fix.
+**Default if no answer in 7 days:** Rebuild uses Receive Watch per D-020; legacy hotfix adds mapping after markerless flow fix.
 
-### Q-011-B: Should RS intake save trigger RW push immediately?
+### Q-011-B: Should saving the Receive Watch page immediately notify the shop system?
 
 **Type:** architectural
-**Question:** Should `ClientWatchEntryPage` save call `sendIntakeToRolliworking` directly, not wait for label wizard?
-**Why it matters:** D-019 two-stage pattern may separate possession from verification; today gap is longer than intended.
-**Default if no answer in 7 days:** Keep label-wizard trigger; document as coupling risk.
+**Question:** Today, the shop system only learns about a watch when the label wizard finishes — not when staff save the Receive Watch page. Should saving Receive Watch immediately send the watch to the shop queue, or should we keep waiting until labels are printed?
+**Why it matters:** The two-stage intake pattern says possession (package receive) and verification (Receive Watch) are separate steps. Delaying shop notification until label printing creates a gap where staff think the watch is registered but the shop floor sees nothing.
+**What I observed:** Receive Watch save writes to RolliSuite only. The shop notification fires from the label wizard completion step. *(Technical: sendIntakeToRolliworking only from IntakeLabelWizard.)*
+**My best guess:** Rebuild triggers shop notification at Stage 2 verification commit; legacy keeps label-wizard trigger with documented risk.
+**Default if no answer in 7 days:** Keep label-wizard trigger for legacy; document as coupling risk until D-019 rebuild.
 
 ---
 

@@ -248,6 +248,21 @@ The resulting validated dataset is a strategic acquisition asset — differentia
 - **Cursor:** Reads answered Word doc from Dropbox, updates HUMAN-ANSWERS.md in the repo, commits and pushes
 - **Qwen:** Reads HUMAN-ANSWERS.md at session start to unblock work
 
+### Plain-language requirement (added 2026-06-30)
+
+Questions logged to HUMAN-QUEUE.md and to the "Open questions" section of discovery files must be written in plain English, not engineer-language. The operator answering these questions is not a developer.
+
+Required style:
+- Business terms (customer, staff, watch, invoice) over technical terms (row, tuple, upsert, JWT)
+- Explain what happens operationally before referencing where it lives in code
+- File paths and line numbers go in parentheses at the end, not front-loaded
+- Acronyms defined on first use
+- No variable names or function names in the question text itself
+
+Questions written in engineer-language must be rewritten before the next snapshot generation. This is enforced at snapshot-generation time — if a question can't be understood without a technical background, it doesn't ship to the Word doc.
+
+See QWEN.md "Plain-language rules" for full guidance and examples.
+
 **Folder structure:**
 - `G:\Dropbox\__AI\emergent-hq-human-queue\` — root folder for snapshots
 - `G:\Dropbox\__AI\emergent-hq-human-queue\QUESTIONS-YYYY-MM-DD.docx` — each snapshot

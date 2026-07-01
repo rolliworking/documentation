@@ -115,10 +115,14 @@ Analytics, Users, Wiki, Email Templates, etc. — desktop tables; rare iPad use.
 
 ## 8. Open questions
 
-### Q-014-A: Deprecate ComponentStatus in favor of unified ShopFloor?
+### Q-014-A: Should we retire the older shop floor screen and use one unified floor view?
 
 **Type:** scope
-**Default:** Yes — single floor UI per W-37; ComponentStatus scan batches become Shop Floor modes.
+**Question:** RolliWorking has two shop floor screens — an older "Component Status" page and the newer "Shop Floor" page with the station map. Should we merge them into one screen (with the drag-and-drop GUI from W-37) and retire the older one?
+**Why it matters:** Staff shouldn't learn two different interfaces for the same job. Maintaining both doubles the work for every shop floor fix.
+**What I observed:** Component Status uses an older drag-to-safe pattern that only works with a mouse. Shop Floor has the station map but also blocks touch drag today. Both do overlapping jobs. *(Technical: ComponentStatus.tsx vs ShopFloor.tsx.)*
+**My best guess:** Yes — one Shop Floor screen with touch drag (W-37); morning/evening scan batches become modes within it.
+**Default if no answer in 7 days:** Deprecate ComponentStatus; scan batches become Shop Floor modes.
 
 ---
 
