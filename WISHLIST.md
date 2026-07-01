@@ -162,6 +162,68 @@
 **Priority:** Medium (not blocking but informs every schema and sync design decision)
 **Dependencies:** Canonical data model design, sync architecture (D-020), customer master plan
 
+### AI-generated warranty summary reports (W-40)
+**Source:** A-20260629-003 (Q-008-A)
+**Description:** When a warranty issue arises or a client questions the quality of work performed, an AI-generated summary report can be produced pulling together: RolliTime test data (before/after tolerances, accuracy readings, power reserve), inspection photos (from D-021 index), service history (parts replaced, work performed, technician notes), and job timeline. The report is client-facing — a professional summary of what was done and the technical evidence supporting the quality of the work.
+
+**Use cases:**
+- Warranty claim response: "Here's what we did, here's the test data proving it was in spec at delivery"
+- Client quality inquiry: "Here's the full record of your watch's service, with photos and measurements"
+- Insurance documentation
+- Post-service confidence-building (proactive summary sent with pickup notification)
+
+**Priority:** Medium-high (strategic client-facing feature, differentiates Rolliworks from competitors, leverages accumulated data)
+
+**Dependencies:**
+- D-021 (photo storage index) — reports pull photos from `shared.intake_photos`
+- D-022 (watch assembly state model) — reports reference piece-level service history
+- New shared test results table (per A-20260629-003) — reports pull RT test data
+- SPEC-010 (RolliTime ↔ RS contracts) — determines data availability
+- AI report generation infrastructure — model choice, prompt engineering, template design
+
+**Deferred:** Model selection, report format, distribution mechanism (email PDF, portal link, printed), consent/privacy handling. Future SPEC.
+
+### Variance notifier at Receive Watch page (W-41)
+**Source:** A-20260629-007 (Q-011-A)
+**Description:** When staff at the Receive Watch page (Stage 2 of D-019) find that actual received items don't match the estimate's item count (more or fewer items than expected), the current workflow requires them to leave the page, modify the estimate, then restart the receive process. This is friction-heavy and error-prone.
+
+Should become an inline variance notifier that:
+- Detects mismatch between actual received items and estimate expected items
+- Displays a clear warning ("Expected 2 items on estimate #4712, but you're receiving 3 pieces")
+- Offers a resolution path directly:
+  - Edit the estimate inline (add/remove line items, adjust quantities) without leaving the Receive Watch flow
+  - OR acknowledge the variance and proceed (with the variance logged to the audit trail per D-020)
+- Blocks Stage 2 commit until the variance is resolved
+
+**Priority:** Medium-high (operational friction removed, D-020 audit trail preserved)
+
+**Dependencies:**
+- D-019 amended two-stage intake (defines Receive Watch as commit layer)
+- D-020 (silent failure banned) — variance events must be logged
+- SPEC-001 (two-stage intake schema) — variance notifier UX included in scope
+
+### Cron inventory D-020 audit — maintenance-hourly and vault-storage-fee-daily (W-42)
+**Source:** A-20260629-001 (Q-005-C pg_cron discovery)
+**Description:** The Q-005 pg_cron discovery revealed six active cron jobs. Two need D-020 silent-failure audit because their scope isn't documented and their failure modes could have real operational impact:
+
+1. **`maintenance-hourly`** — runs every hour on the hour, purpose undocumented in discovery. Could be cleanup, aggregation, cache refresh, or something more consequential. If silently failing, cascading effects possible depending on scope.
+
+2. **`vault-storage-fee-daily`** — bills customers for vault storage. If silently failing, direct revenue impact (uncharged storage fees). High-priority audit.
+
+Both should be inspected for:
+- What operation they perform
+- Whether they write to a run log with success/failure/started status
+- Whether failures produce observable telemetry (banner, email, log entry)
+- Whether they follow chunked + idempotent patterns per D-020
+
+Findings should be captured as either new PROD-FIX entries (if bugs are found) or amendments to Q-005 discovery.
+
+**Priority:** Medium (both are running silently now; unknown whether they're broken)
+
+**Dependencies:**
+- D-020 (silent failure banned)
+- Q-005 discovery (initial cron inventory)
+
 | W35 | `[BACKLOG]` | **PO split for back-orders.** Accept received items; split outstanding items into a new separate PO. Today PO stays open with received + outstanding mixed. *(Workflow Q&A Tier 2.)* |
 | W36 | `[BACKLOG]` | **Backfill flow for items received without estimates.** Today Vianna sets aside, Mike creates estimate after the fact; need a real receive-without-estimate process. *(Workflow Q&A Tier 2.)* |
 | W41 | `[BACKLOG]` | **Pickup Station IP cam / Nest integration.** After QR scan at pickup, auto-snap photos of customer leaving with item; audit trail for completed pickups. *(Workflow Q&A Tier 5.)* |

@@ -240,6 +240,27 @@ OAuth tokens live in `qbo_tokens`. Background sync audit lives in `qbo_sync_log`
 
 ---
 
+## 9b. Actual pg_cron inventory (added 2026-06-29 via direct pg_cron query)
+
+The initial Q-005 discovery guessed "single daily cron for customer sync only; invoice sync manual-triggered." That was wrong. Six active pg_cron jobs (UTC):
+
+| Cron job name | Schedule | Target function | Notes |
+|---|---|---|---|
+| `qbo-daily-sync` | daily 06:00 | `qbo-cron-sync` | Customer sync — confirmed broken (162 stuck 'started' rows since 2026-01-12) |
+| `maintenance-hourly` | hourly on the hour | `maintenance-cron` | Scope undocumented — needs W-42 audit |
+| `qbo-invoice-sync-hourly` | hourly at :15 | `qbo-invoice-sync` | Invoice sync — runs 24×/day. Silently drops all log entries due to CHECK constraint bug (PROD-FIX-001). Zero telemetry for years. |
+| `rw-status-daily-5am` | daily 10:00 UTC | `rw-status-cron` | RW status push to RS |
+| `vault-storage-fee-daily` | daily 08:00 | `vault-storage-cron` | Vault storage billing — needs W-42 audit for D-020 compliance |
+| `daily-gold-price-update` | daily 12:00 | `gold-price-update` | Gold price refresh |
+
+**Key implication for PROD-FIX-001:** The invoice sync CHECK constraint bug isn't just missing telemetry for occasional manual runs. Invoice sync runs 24×/day silently. Every insert has been failing since the code shipped. Thousands of log attempts lost. This elevates PROD-FIX-001 urgency.
+
+**Discovery methodology lesson:** cron jobs live in `pg_cron.job`, not in `apps/rs/supabase/migrations/`. Future discovery tasks touching cron behavior must query `pg_cron.job` directly.
+
+**Source:** Session 2026-06-29 pg_cron query (A-20260629-001)
+
+---
+
 ## 10. Open questions
 
 ### Q-005-A: Is customer cron actually completing?
@@ -252,21 +273,11 @@ OAuth tokens live in `qbo_tokens`. Background sync audit lives in `qbo_sync_log`
 
 ### Q-005-C: What is the actual scheduled time for QuickBooks sync jobs?
 
-**Type:** ops
-**Question:** What time of day does the automatic QuickBooks customer sync actually run, and does it also pull invoices on a schedule or only customers and estimates?
-**Why it matters:** Staff need to know when overnight sync happens so they can trust customer data in the morning. If invoice sync is supposed to run automatically but isn't scheduled, invoices may never update without someone clicking manually.
-**What I observed:** The sync schedule is configured in the hosting dashboard, not in the code we can read from git. The invoice sync code supports an automatic trigger, but the settings screen only mentions customers and estimates. *(Technical: no cron.schedule in migrations.)*
-**My best guess:** One daily job syncs customers only; invoice sync is manual unless someone added a second schedule in the dashboard we can't see.
-**Default if no answer in 7 days:** Document the schedule as dashboard-only configuration and don't assume invoice auto-sync exists.
+**Status:** answered (A-20260629-001)
 
 ### Q-005-D: How many purchase orders actually made it into QuickBooks?
 
-**Type:** operational truth
-**Question:** Of the purchase orders we've marked as received in RolliSuite, how many have a matching bill or journal entry in QuickBooks?
-**Why it matters:** If almost none do, the PO-to-QuickBooks path is a manual workaround and shouldn't be built into automatic workflows until we know it's worth fixing.
-**What I observed:** PO push to QuickBooks only happens when someone triggers it manually. The bill step and the journal-entry step can fail independently, so partial success is possible. *(Technical: qbo_bill_id and JE notes on purchase_orders table.)*
-**My best guess:** Very low adoption — accounting uses this ad hoc, not as a daily process.
-**Default if no answer in 7 days:** Keep PO sync as a manual accounting bridge; don't invest in automatic scheduling yet.
+**Status:** answered (A-20260629-002)
 
 ---
 

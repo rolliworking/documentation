@@ -26,6 +26,12 @@ Invoice sync has **zero durable telemetry** despite returning HTTP 200. Two inde
 
 **Evidence:** Production CHECK not altered. Zero `sync_type='invoice'` rows ever persisted. Customer sync cron separately stuck at `started` since 2026-01-12 (see A-20260628-010).
 
+### Why this matters
+
+Invoice sync has **zero durable telemetry** despite returning HTTP 200 — operators and accounting cannot tell whether sync ran, succeeded, or failed. This violates D-020 (silent failure banned).
+
+**Update 2026-06-29:** Q-005-C pg_cron discovery revealed that `qbo-invoice-sync-hourly` runs at :15 past every hour — 24 executions per day. This means the CHECK constraint bug isn't just missing telemetry for occasional manual invoice syncs; it's dropping every single log entry from the hourly cron. Since the code shipped, potentially thousands of invoice sync attempts have run with zero telemetry. PROD-FIX-001 elevates from important to urgent — fix soon.
+
 ### Required fixes (Lovable)
 
 | # | Change | File:line | Notes |

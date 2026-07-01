@@ -320,6 +320,24 @@ See QWEN.md "Plain-language rules" for full guidance and examples.
 - The current "components aren't registered" Shop Floor failure root cause
 - Loss of accountability when assets move between staff
 
+### D-019 amendment (2026-06-29): three-page structure
+
+The original D-019 described a two-stage pattern (possession → verification + commit). Michael's answer to Q-011-A clarifies the operational structure more precisely:
+
+**Stage 1 has two entry pages:**
+- **Stage 1a — Shipping Receive page:** captures package arrival data (tracking number, arrival timestamp, packaging condition, contents claimed on the shipping label). Data collection layer only.
+- **Stage 1b — Drop-off page:** captures walk-in intake data (customer, watches presented, condition photos). Data collection layer only.
+
+**Stage 2 remains one page:**
+- **Receive Watch page:** The verification + inventory commit + component mapping layer. Staff view all upstream data (what was shipped OR dropped off, item count, viewable estimate) and correctly enter/verify the components. Component records (per D-022 piece table) are created here — not upstream.
+
+**Variance handling:** When received items don't match the estimate (more or fewer items than expected), the current workflow requires staff to leave the Receive Watch page, modify the estimate, then restart the receive process. Should become an inline variance notifier at the Receive Watch page with a resolution path (edit estimate + auto-restart, or acknowledge variance and proceed). Captured as W-41.
+
+**Component creation authority per D-020:** Receive Watch is the source of truth for component (piece) creation. The upstream rollisuite-intake edge function becomes a sync/notification mechanism, NOT a creator.
+
+**Companion item:** W-41 (variance notifier)
+**Source:** A-20260629-007
+
 **Companion files to update:**
 - `PLANNED-CODEBASE.md` — note the two-stage intake pattern in the RolliSuite operational section
 - `WISHLIST.md` — W-33 and W-34 (just added)
@@ -367,6 +385,99 @@ Combined with Michael's confirmation that estimate markers are merely "suggestio
 - PROD-FIX-001 — patches the qbo_sync_log drift in the current Lovable app
 
 **Source:** Session 2026-06-28 (PM), Lovable AI audit + Michael's answers
+
+---
+
+## D-021 — Photo storage strategy: R2 for new, Supabase for old, index bridges
+
+**Date:** 2026-06-29
+**Decision:** All new photo capture in the rebuild (intake, inspection, pickup, testing, dial library) writes to Cloudflare R2 storage. Historical photos in Supabase Storage buckets remain in place — no migration. A unified index table (`shared.intake_photos`) provides application-level access across all storage locations; apps look up the index first, then fetch the photo from whichever storage location the index specifies.
+
+**Rationale:** R2 has zero egress fees — essential for the client-page photo gallery use case (Q-009 confirmed), the future Authenticator training data pipeline, and any future AI model consuming photos at scale. Supabase Storage's per-GB storage cost is slightly higher and its egress fees compound quickly at Rolliworks' projected volume (~36,500 new photos/year, viewed repeatedly by staff and customers).
+
+Historical photos are low-view-frequency; migration cost isn't justified. Migration is deferred indefinitely; retirement of Supabase Storage buckets happens naturally over time as photos age out.
+
+**What this enables:**
+- Client-page photo gallery displays all photos for a customer's watches regardless of physical storage location
+- Future Authenticator app can query the index for dial photo training data at scale
+- W-38 (side-by-side before/after at pickup) works whether the intake photo is in R2 or Supabase
+- Cross-app photo access (RS displaying RolliTime dial photos, RolliConnect showing intake photos in portal, etc.)
+
+**Architectural implications:**
+- `shared.intake_photos` becomes the canonical photo index. Columns include: id, watch_id, job_id, photo_type (dial/caseback/bracelet/whole_watch/etc.), storage_location ('R2'/'supabase'/'dial_library'), storage_path, captured_at, captured_by, stage ('intake'/'inspection'/'pickup'/'testing').
+- Every photo capture in the rebuild writes to the index alongside the file upload. Missing an index row = the photo effectively doesn't exist for app queries.
+- Backfill: one-time script scans R2 and Supabase Storage buckets, creates index rows for existing photos.
+- Photo query API abstracts storage location from consumers. Apps request "photos for watch X" — the API resolves from the index.
+
+**Cost projection over 5 years:** ~$1,700 (recommended path) vs ~$4,800–9,300 (all Supabase). Savings compound with viewing frequency.
+
+**Retention/lifecycle:** Old photos in Supabase Storage may be archived to cold storage or deleted per business rules after 3–5 years. Not urgent to decide now.
+
+**Companion items:**
+- Q-009 discovery (photo storage + R2 patterns)
+- W-33 (visual client asset inventory) — reads from the index
+- W-38 (side-by-side before/after photo comparison at pickup) — reads from the index
+- W-40 (AI warranty summary reports) — reads test data + photos from the index
+- Future Authenticator app — reads dial library from the index
+
+**Status:** Active
+**Source:** Session 2026-06-29, A-20260629-005
+
+---
+
+## D-022 — Watch assembly state model (X of Y pieces)
+
+**Date:** 2026-06-29
+**Decision:** A watch has one identity — its serial number. Components are not independent things; they are pieces of one watch, temporarily separated during service. The current assembly state is expressed as "X of Y" — a whole watch is 1 of 1, a disassembled watch is 1 of 3, 2 of 3, 3 of 3 (or however many pieces exist), and reunification collapses the pieces back to 1 of 1.
+
+This supersedes the earlier framing that RS `client_property` and RW `job_components` were competing "canonical rows" for the visual inventory (W-33). There is no competition. There is one identity (the watch) and multiple current-state pieces.
+
+**Data model:**
+- **Watch table** — one row per unique serial number. Owns the identity: customer_id, brand, model, reference_number, serial_number, custody_status.
+- **Piece table** — one row per piece currently in existence. Every piece row references its parent watch via FK. Columns: id, watch_id (FK), piece_number, piece_total, piece_type ('whole_watch'/'head'/'bracelet'/'case'/'dial'/'bezel'/'movement'/etc.), station_id, staff_id, moved_at.
+- **When whole:** one piece row (piece_number=1, piece_total=1, piece_type='whole_watch')
+- **When disassembled:** multiple piece rows sharing watch_id (e.g., three rows with piece_totals=3, piece_numbers 1/2/3, piece_types head/bracelet/case)
+- **When reunified:** the multiple piece rows collapse back to a single row (1 of 1, piece_type='whole_watch')
+
+**UI implications (W-33 visual inventory):**
+- Dashboard shows watches, grouped by customer
+- Each watch card shows its current assembly state at a glance:
+  - `Smith's Rolex Submariner 116610 · Serial 1234567 · Status: In service · 1 of 3, 2 of 3, 3 of 3` (expandable to per-piece detail)
+  - `Jones's Tudor Black Bay · Serial 9876543 · Status: In safe · 1 of 1`
+- Per-piece detail shows: piece_type, station, staff owner
+- Ready-for-reunification signal appears when all pieces of a watch land at the same station
+
+**UI implications (W-37 Shop Floor drag-drop):**
+- Staff drag pieces between stations
+- Each drag is logged as "piece X of Y moved from Station A to Station B for watch_id N"
+- When all pieces of a watch converge at one station, the UI highlights it as reunification-ready
+
+**Chain-of-custody implications (D-015 audit trail):**
+- Every piece movement writes an audit log row: watch_id, piece_id, from_station, to_station, staff_id, timestamp, notes
+- Piece transitions (disassembly and reunification) are also logged as identity-level events on the watch
+- The audit surface answers "where has every piece of this watch been?" with full history
+
+**Architectural implications:**
+- Eliminates the "two parallel location models" problem identified in Q-013 (RS custody_status vs RW station_id)
+- The location model is unified: watches have identity, pieces have location, both are tracked but the identity is authoritative
+- The rebuild's canonical data model (SPEC-002) must reflect this structure
+- SPEC-005 (Shop Floor drag-drop) builds directly on this model
+- RolliClock and other future ecosystem apps can reference watches by serial number without needing to understand piece-level state
+
+**Part swap handling (deferred):**
+- When components get replaced during service (e.g., broken bracelet swapped for new one), the piece record for the old component is closed and a new piece record is opened
+- Original bracelet and replacement bracelet each have their own piece_id but share the same watch_id
+- Detailed part-swap semantics deferred to a future SPEC (parts inventory integration)
+
+**Companion items:**
+- Q-013 discovery (storage workflow)
+- W-33 (visual client asset inventory) — spine is the watch table with X-of-Y summary
+- W-37 (Shop Floor drag-drop GUI) — moves pieces between stations
+- D-015 (chain of custody) — audits piece movements
+- D-019 amendment (two-stage intake) — pieces are created at Stage 2 Receive Watch verification
+
+**Status:** Active (foundational data model decision affecting SPEC-001, SPEC-002, SPEC-005)
+**Source:** Session 2026-06-29, A-20260629-010
 
 ---
 
