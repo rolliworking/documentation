@@ -477,3 +477,15 @@ Full detail: [rc/handoffs/session-handoff-2026-05-27.md](../rc/handoffs/session-
 
 ### Ingested
 - RC documentation bundle → `documentation/rc/` (architecture, features, plans, prompts, security, technical-debt, handoffs).
+
+---
+
+## Silo 11 close - vendor pricing split
+
+### New known gap
+
+- **RS vendor pricing has two conflicting tables.** `vendor_parts` has 100 rows and is the only source read by `generate_reorder_suggestions`; `part_vendor_prices` has 1,539 rows from CSV pricing import and is invisible to reorder. The 7 overlapping `(part_id, vendor_id)` pairs all disagree by more than $0.01, so a mechanical sync is unsafe without operator judgment. Full detail and diagnostic SQL: `known-gaps/vendor-pricing-dual-table-split.md`.
+
+### Product implication
+
+The silo 11 reorder x vendor-comparison work can union both tables for that new surface and surface conflicts, but that does not close the underlying gap. AutoPO, PartsVendorsTab, and `generate_reorder_suggestions` still need a single-source-of-truth decision or a read-side union strategy.
