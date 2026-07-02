@@ -224,6 +224,102 @@ Findings should be captured as either new PROD-FIX entries (if bugs are found) o
 - D-020 (silent failure banned)
 - Q-005 discovery (initial cron inventory)
 
+### Fast lane on Shop Floor + concierge queue UI (W-44)
+**Source:** Session 2026-07-01 — operational reality of small-jobs workflow
+**Description:** The rebuild's Shop Floor dashboard (W-33 visual inventory + W-37 drag-and-drop GUI) must display a fast lane for concierge-managed small jobs alongside the full-service lane. The fast lane has fewer stations and simpler custody, but the same data model discipline, audit trail, and Transferability Test compliance as the full lane.
+
+**Fast lane layout on Shop Floor:**
+
+FAST LANE (Concierge) [Queue: N] → [Concierge: name] → [Tech Bench: name] → [Safe / Client]
+
+Cards move between stations via drag-and-drop or via UI transitions at intake/handoff points. Concierge owns the queue and sequences jobs to techs. Techs perform the work at their bench. Concierge returns to client or routes to safe.
+
+**Concierge queue as first-class UI:**
+
+Separate from Shop Floor viewer but linked. Concierge-role staff work primarily from this queue during their shift. Features:
+- Current queue with wait times
+- Photo requests from clients (subtype of fast-lane work)
+- Conflict management (customer complaints, quality disputes)
+- Quick-note field per job
+- Tech assignment interface
+
+**Login-based custody transfers:**
+
+Each transition (client → concierge, concierge → tech, tech → concierge, concierge → safe/client) captures `to_staff_code` from currently-authenticated user session. `from_staff_code` selected from dropdown of active staff (sourced from RGTime cache per D-026). Bench-based path never enters safe unless job completes at end-of-day or client is not present.
+
+**Priority:** High (facility-opening critical path — concierge role starts at facility opening if not before)
+
+**Dependencies:**
+- D-024 (workflow type first-class + fast lane architecture)
+- D-026 (RGTime staff master + login-based custody)
+- Canonical data model (jobs table with workflow_type column)
+- Shop Floor viewer (W-37) — fast lane rendered as second lane
+- Chain-of-custody baseline (D-015) — bench-based path supported
+- Cross-app auth (Q-010) — concierge role permissions
+- Photo storage index (D-021) — minimum 2 photos per fast-lane job
+
+**In scope for 1/31/2027 facility opening:**
+- Fast lane on Shop Floor
+- Concierge queue UI (basic queue + assignment + photos + notes)
+- Login-based custody transfers for fast lane
+- State machine for fast lane per D-024
+- Concierge role in auth model
+- Concierge staff record in RGTime
+
+**Deferred to Q2-Q4 2027:**
+- Photo request queue advanced features (client communication automation)
+- Concierge KPI dashboards
+- Conflict management workflow (escalation paths, resolution tracking)
+- Cross-lane view (jobs that started fast but escalated to full workflow)
+
+**Companion items:** D-024, D-025, D-026, D-015, D-019, D-021, W-33, W-37, W-45
+
+### Tech breadcrumb on sales orders + production reporting (W-45)
+**Source:** Session 2026-07-01 — Michael identifies existing workaround (tech name as QBO product code)
+**Description:** Currently, tech attribution for production reporting is captured by swapping the QBO product code to the tech's name and pasting the service description back into the line item body. This requires manual work on every sales order, is fragile, and doesn't support multi-tech jobs cleanly.
+
+Replace with:
+- **Internal tech attribution** via `job_tech_involvements` join table (job → staff_code, populated automatically from custody transfers once chain-of-custody scanning is live per D-024 and D-015)
+- **Sales order breadcrumb field** (`techs_involved` — array of staff_code values) that pulls from the join table when the sales order is created
+- **QBO clean push** — product codes go back to service descriptions. Tech attribution stays in RS.
+- **Production KPI reports** query the join table directly instead of parsing QBO product code strings
+
+**Staff identity source:** All `staff_code` values reference RGTime (per D-026). Local staff cache in RS provides name/role display without cross-project queries at report time.
+
+**Why breadcrumb over other approaches:**
+- QBO doesn't support custom fields on line items reliably; won't push tech attribution cleanly
+- Multiple techs per job are supported natively (join table can hold N staff_codes per job)
+- Historical accuracy preserved even if a tech leaves or is renamed
+- Warranty investigations become a database query, not archaeology on invoice descriptions
+- KPI reports work cleanly against structured data
+
+**Zero staff burden:** techs are already recording custody transfers per D-024 and D-015. The breadcrumb aggregates data already being captured.
+
+**Priority:** High (real ongoing time waste + production reporting depends on it)
+
+**Dependencies:**
+- D-024 (fast lane + custody recording) — provides automated data source
+- D-015 (chain of custody) — same source; full-workflow custody transfers also populate breadcrumb
+- D-026 (RGTime staff master) — provides staff_code identity
+- Canonical `jobs` table + `job_tech_involvements` join table (part of SPEC-002)
+- QBO sync layer (Q-005 findings) — pushes clean product codes only
+
+**In scope for 1/31/2027 facility opening:**
+- job_tech_involvements join table
+- Automatic population from custody transfers
+- Sales order breadcrumb field
+- QBO push cleaned up (product codes revert to service descriptions)
+- Basic production report (jobs per tech per week)
+
+**Deferred to Q2-Q4 2027:**
+- Advanced KPI dashboards
+- Warranty rate per tech reporting
+- Comparative analytics (this tech vs team average)
+
+**NOT implemented in current Lovable:** Per D-025, this is not an emergency fix. The current workaround (tech name as product code) continues until rebuild ships. Time-waste cost accepted through cutover.
+
+**Companion items:** D-024, D-025, D-026, D-015, D-020, W-44
+
 | W35 | `[BACKLOG]` | **PO split for back-orders.** Accept received items; split outstanding items into a new separate PO. Today PO stays open with received + outstanding mixed. *(Workflow Q&A Tier 2.)* |
 | W36 | `[BACKLOG]` | **Backfill flow for items received without estimates.** Today Vianna sets aside, Mike creates estimate after the fact; need a real receive-without-estimate process. *(Workflow Q&A Tier 2.)* |
 | W41 | `[BACKLOG]` | **Pickup Station IP cam / Nest integration.** After QR scan at pickup, auto-snap photos of customer leaving with item; audit trail for completed pickups. *(Workflow Q&A Tier 5.)* |

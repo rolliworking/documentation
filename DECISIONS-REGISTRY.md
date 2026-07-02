@@ -509,6 +509,265 @@ This supersedes the earlier framing that RS `client_property` and RW `job_compon
 
 ---
 
+## D-024 — Workflow type as first-class field + fast lane on Shop Floor
+
+**Date:** 2026-07-01
+**Decision:** Every job has a workflow type assigned at estimate time. Two workflow types exist in the rebuild:
+
+- **`full_service`** — long-form service work (movement service, restoration, complex bracelet work, anything requiring diagnostic or multi-department coordination). Runs the full Shop Floor lane: Receive → Safe → Watchmaker → Bracelet → Polish → Watchmaker → Safe → Inspection → Ready-to-Ship → Pickup. Multi-department, multiple safe transfers, full inspection cycle.
+
+- **`fast_service`** — single-operation service work (dial installation, permanent link removal, hand adjustment, battery replacement, crown replacement, gasket replacement, bezel insert swap, quick regulation). Runs the fast lane: Queue → Concierge → Tech Bench → Safe or Client Return. Single-department, bench-based custody, minimal photo ceremony.
+
+**Workflow selection rule:** A job is `fast_service` IF the estimate is one specific technical action AND turnaround estimate is ≤ 2 business days AND no diagnostic work needed. Otherwise `full_service`. The rule is applied by whoever writes the estimate — not a judgment call, a checklist.
+
+**Division vs workflow split:** Rolliworks and RolliShop are turnaround-time divisions (long vs under-4-weeks). Both divisions run both workflow types. RolliShop cherry-picks jobs (of either workflow type) that fit under-4-week turnaround. Rolliworks handles everything else. **Small jobs are not a division — they are a workflow pattern that exists in both divisions.**
+
+**Concierge role:** New operational role responsible for the fast lane. Concierge duties:
+- Managing the fast-lane queue and workflow sequencing
+- Small-job project management (in and out quickly)
+- Photo requests from clients (for in-progress full-service jobs)
+- Client conflict management (customer complaints, quality disputes, missed dates)
+- Client-facing touch during small-job intake (client often waits or is closely involved)
+
+**Fast lane on Shop Floor (visual + data model):**
+
+The Shop Floor dashboard (W-33 + W-37) displays two lanes stacked vertically. The fast lane looks like this:
+
+FAST LANE (Concierge) [Queue: N] → [Concierge: name] → [Tech Bench: name] → [Safe / Client]
+
+Cards show:
+- Job type
+- Wait time
+- Started at
+- Ready flag
+- Client
+- Tech name
+- Estimated time
+- Pickup path
+
+Same visual language as the full lane (cards, drag-drop, stations). Same data model discipline. Fewer stations, less photo ceremony.
+
+**Custody model for fast lane:**
+
+Bench-based, not safe-based. Sequence:
+1. Concierge takes possession from client (custody: `with_concierge`)
+2. Concierge assigns to tech and hands off (custody: `at_tech`, tech identity captured)
+3. Tech completes work at bench (custody: `at_tech`, status: `in_service`)
+4. Tech returns to concierge (custody: `with_concierge`, status: `service_complete`)
+5. Concierge returns to client OR routes to safe for pickup later (custody: `released_to_client` OR `in_safe_for_pickup`)
+
+Chain-of-custody (D-015) applies at every transfer. Fast lane never enters the multi-department Shop Floor flow.
+
+**State machine for fast lane:**
+
+- `queued` — in concierge queue awaiting sequencing
+- `with_concierge` — concierge is handling (intake, tech selection, communication)
+- `at_tech` — tech is performing the work at bench
+- `service_complete` — work done, awaiting concierge return
+- `returned_to_client` — released to client (in-person)
+- `in_safe_for_pickup` — held for later pickup
+- `released_at_pickup` — released via pickup station
+
+**Photo capture for fast lane:**
+
+Minimum: one before photo (proves what came in), one after photo (proves what left). Optional tech detail photos if notable. Full inspection cycle photos NOT required. Photos still indexed via `shared.intake_photos` (D-021).
+
+**Architectural implications:**
+
+- `jobs` table gets a `workflow_type` column with CHECK constraint (`full_service`, `fast_service`)
+- Estimate module gets a workflow-type selector at estimate creation
+- Shop Floor UI renders two lanes stacked, filterable by lane
+- Auth model (Q-010) adds `concierge` role with defined permissions
+- Custody model (D-015) handles both safe-based (full workflow) and bench-based (fast workflow) paths
+- Concierge queue is a first-class UI surface — not an afterthought
+
+**Companion items:**
+- W-44 (fast lane on Shop Floor + concierge queue UI)
+- W-45 (tech breadcrumb on sales orders)
+- D-015 (chain of custody) — must handle bench-based path
+- D-019 (two-stage intake) — workflow-type routing happens at estimate creation, verified at Receive Watch
+- D-020 (silent failure banned)
+- D-021 (photo storage) — minimum 2 photos per fast-lane job
+- D-022 (watch assembly state) — fast-lane jobs typically 1 of 1 throughout
+- D-026 (RGTime as staff master)
+- Q-010 (cross-app auth) — concierge role added to auth model
+- Q-016 spike (small-jobs current handling)
+
+**Transferability Test result:** Anticipated PASS on all five tests. Watch items:
+- Workflow-type selection rule must be documented as a checklist, not judgment
+- Concierge queue must be operable by a new concierge hire from documentation alone
+- Bench-based custody must be auditable identically to safe-based custody
+- Second-location deployment (RolliShop scaling) inherits the same fast lane
+
+**Status:** Active (foundational architectural decision affecting SPEC-001, SPEC-005, and any custody-related SPEC)
+
+**Source:** Session 2026-07-01, operational reality feedback from Michael
+
+---
+
+## D-025 — Legacy Lovable RolliSuite is frozen except for emergency fixes
+
+**Date:** 2026-07-01
+**Decision:** The current Lovable-based RolliSuite is fragile and buggy. Every code change carries meaningful regression risk. Between now and rebuild cutover (Feb 2027 facility opening), changes to the current codebase are restricted to a narrow category of emergency fixes. All improvements, features, workflow enhancements, and UX changes are captured as rebuild wishlist and shipped when the corresponding rebuild slice reaches production.
+
+**What IS allowed in the current Lovable RolliSuite:**
+
+- Emergency production fixes documented in `documentation/operational-fixes/` following the PROD-FIX-* pattern
+- Bar for emergency fix (all four must be true):
+  1. Production is actively failing OR a real risk of harm exists (data loss, security exposure, revenue leak, physical asset risk)
+  2. Scope is bounded (a specific file / function / migration, not "while we're in there")
+  3. Fix is easy to verify (SQL query, manual test, or observable telemetry)
+  4. No new features introduced as part of the fix
+
+**What is NOT allowed in the current Lovable RolliSuite:**
+
+- New features (however small)
+- UX improvements
+- Workflow enhancements
+- "While we're in there" tangential changes
+- Refactoring for cleanliness
+- Field additions to support new capture
+- Optimizations that aren't fixing a broken thing
+
+**How improvement ideas are handled:**
+
+Every improvement idea between now and cutover gets one of three fates:
+
+- **Fate 1 — Wishlist for rebuild.** Capture in `documentation/WISHLIST.md`. Ships when the corresponding rebuild slice reaches production.
+- **Fate 2 — Emergency Lovable patch.** Only when all four bar criteria above are met. Documented as new PROD-FIX-* entry.
+- **Fate 3 — Reject.** Not captured, not built. Rare — most ideas fit Fate 1.
+
+**Rationale:**
+
+Fragile production systems reward stability more than improvement. The rebuild is the strategic transformation; touching Lovable for anything except active failures creates two costs:
+1. Regression risk in the current production system (real customer impact)
+2. Engineering attention diverted from the rebuild's critical path
+
+Both costs compound. Every "just a small fix" in Lovable is a distraction from the rebuild finishing on time.
+
+**Confirmed emergency fixes already in scope:**
+
+- PROD-FIX-001 (qbo_sync_log schema drift + finished_at bug) — 24×/day silent failures, active production degradation
+- PROD-FIX-002 (payment lifecycle handling) — real theft/loss risk from refunded payments
+- PROD-FIX-003 (HMAC fail-closed) — security posture, small change with real risk reduction
+
+**Confirmed NOT emergency (captured as rebuild wishlist):**
+
+- Tech breadcrumb on sales orders (W-45) — workaround exists, no production failure
+- Fast lane on Shop Floor (W-44) — new capability, not fixing broken thing
+- Bracelet rebuild target preference (W-43) — new feature
+- All other UX/workflow improvements — rebuild scope
+
+**Enforcement:**
+
+When any AI agent or human considers a Lovable code change, they must confirm:
+- Is this a PROD-FIX-* pattern change?
+- Does it meet all four bar criteria?
+- Is it documented in `documentation/operational-fixes/`?
+
+If any answer is no, the change is rejected and the idea becomes wishlist instead.
+
+**Status:** Active (governance decision affecting all Lovable code changes through cutover)
+
+**Source:** Session 2026-07-01, disciplined recognition that fragile legacy systems reward stability
+
+---
+
+## D-026 — RGTime is the authoritative staff master; consumer apps access via REST endpoints
+
+**Date:** 2026-07-01
+**Decision:** RGTime (formerly referenced as RolliClock in some documents; naming to be confirmed) is the authoritative source of truth for staff identity across the Rolliworks/RolliShop ecosystem. All staff records (staff_code, name, role, employment_status, weekly_target_hours, hired_date, terminated_date) are created and lifecycle-managed in RGTime.
+
+**Architecture: separate Supabase project pattern**
+
+RGTime is its own Supabase project — separate from the rebuild's main Supabase project that hosts RS, RW, RC, RT, shared masters, and AI modules. This means consumer apps CANNOT access RGTime data via cross-schema queries. All cross-app data access happens via documented REST endpoints served from RGTime's Supabase edge functions.
+
+**Consumer app access pattern:**
+
+RS, RW, RC, RT, Shop Floor, and all other apps in the main Supabase project access staff data by calling RGTime's REST endpoints:
+
+- `GET /functions/v1/staff-roster` — returns all active staff records (staff_code, name, role, active status) for local caching
+- `GET /functions/v1/staff/{staff_code}` — returns a single staff record (for on-demand lookup)
+- `GET /functions/v1/weekly-summary` — returns weekly attendance summaries (per existing ROLLICLOCK-TO-RS-CONTRACT)
+
+**Auth pattern:** Shared secret token (`RGTIME_API_TOKEN`) stored in both RGTime edge function environment and consumer app environments. RGTime validates the token on every request. Per D-020 (silent failure banned), missing token results in 503 fail-closed, not fail-open.
+
+**Consumer app caching:**
+
+- Each consumer app pulls the staff roster periodically (recommended: daily at 3 AM local time, plus on-demand for custody events when a staff lookup is unrecognized)
+- Cached locally in a small `staff_cache` table in the consumer app's schema
+- Cache includes: staff_code, name, role, active status, cached_at timestamp
+- Chain-of-custody and other custody events reference staff_code, join to local cache for display
+- If a staff_code is not in local cache when needed, on-demand REST call refreshes and returns
+
+**Ownership boundary:**
+
+- Staff records are created and edited ONLY in RGTime
+- Consumer apps (RS, RW, RC, etc.) do NOT have staff-create UI
+- Consumer apps reference staff by staff_code and display cached name/role
+- Any staff data change (new hire, termination, role change) happens in RGTime first, propagates via sync
+
+**Chain-of-custody actor identification:**
+
+- `to_staff_code` (recipient of custody) is captured from the currently-authenticated user session in the consumer app
+- `from_staff_code` (releaser of custody) is captured from UI selection — a dropdown of active staff sourced from local staff_cache
+- Both fields are required at the data layer (D-020 compliance)
+- If either field is not resolvable (staff_code not in cache), on-demand REST call to RGTime refreshes cache
+
+**Why login-based rather than QR badges (for V1):**
+
+- Every RS/RW/RC user is already authenticated when they perform custody actions
+- Login sessions produce structured user identity with zero additional hardware
+- Session-based `to_staff_code` capture requires no extra scan step at handoffs
+- QR badges may be added as V2 enhancement if shared-device audit gaps prove problematic — deferred, not needed for facility opening
+
+**Staff coverage requirement:**
+
+Every staff member who might participate in chain of custody must have:
+- An RGTime staff record with `staff_code`
+- A login credential in whichever consumer app they use (RS, RW, RC, Shop Floor viewer, etc.)
+
+This includes: techs (watchmakers, bracelet specialists, polish room), front desk (Vianna), concierge (per D-024), managers, owners, and any other role that might handle a watch or participate in transfers.
+
+**Lifecycle:**
+
+- **Hire:** manager/admin creates staff record in RGTime. Staff clocks in via RGTime kiosk on first day (creating first `time_events` entry). Available to consumer apps at next scheduled sync (or immediately via on-demand REST call).
+- **Termination:** marked `employment_status = 'terminated'` in RGTime. Consumer apps filter inactive staff at next sync. `staff_code` is preserved for historical accuracy (never reused).
+- **Role change:** updated in RGTime. Propagates via next sync.
+
+**Transition during rebuild:**
+
+- Before RGTime ships (target: end of October 2026): RS holds staff records as interim master
+- When RGTime ships: staff records migrate from RS to RGTime via one-time migration script. RGTime becomes authoritative.
+- Post-migration: RS admin UI for staff creation is removed. All staff lifecycle events happen in RGTime.
+
+**Sequencing implication for 1/31/2027:**
+
+RGTime foundation (staff master + login + basic clock in/out + REST endpoints) must ship early enough for other rebuild apps to integrate with it before facility opening. Target: RGTime foundation shipped by end of October 2026. Other apps integrate November 2026 through January 2027.
+
+**RGTime becomes one of the first rebuild slices to ship,** because everything downstream depends on staff identity being resolved cleanly.
+
+**Companion items:**
+- D-015 (chain of custody) — actor identity resolved via RGTime
+- D-020 (silent failure banned) — REST calls must fail closed, cache staleness must be observable
+- D-024 (fast lane) — concierge and tech identity from RGTime
+- D-025 (Lovable freeze) — RGTime is rebuild-only, not built into current Lovable
+- W-44 (fast lane on Shop Floor) — depends on staff master
+- W-45 (tech breadcrumb) — depends on staff master
+- Q-010 (cross-app auth) — auth patterns compatible with cross-project REST
+- ROLLICLOCK-TO-RS-CONTRACT.md — expanded to cover staff-roster endpoint
+
+**Transferability Test:** Anticipated PASS on all five tests. Watch items:
+- Staff creation workflow must be documented so new HR/manager can create staff without owner involvement
+- Cache sync failure must produce visible telemetry (not silent staleness)
+- Consumer apps must handle "staff_code not in cache" gracefully with on-demand fetch
+
+**Status:** Active (foundational architectural decision affecting all custody events, all KPI reporting, all sales order breadcrumbs)
+
+**Source:** Session 2026-07-01, staff identity coverage need for chain of custody + fast lane
+
+---
+
 ## D-027 — What's-Next Dropbox discipline: regenerate queue snapshot at every session end
 
 **Date:** 2026-07-01
