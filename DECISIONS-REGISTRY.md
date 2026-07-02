@@ -509,6 +509,79 @@ This supersedes the earlier framing that RS `client_property` and RW `job_compon
 
 ---
 
+## D-027 — What's-Next Dropbox discipline: regenerate queue snapshot at every session end
+
+**Date:** 2026-07-01
+**Decision:** At the end of every meaningful work session on the rebuild, a plain-language "What's Next" Word document is regenerated and saved to Dropbox. The document represents the current queue at that moment — what's ready to do, what's waiting for the operator to answer, what to skim, and what's coming up.
+
+This applies to every session across the entire 11-app rebuild, from now through 1/31/2027 and beyond.
+
+**Location:** `G:\Dropbox\__AI\emergent-hq-whats-next\WHATS-NEXT-YYYY-MM-DD.docx`
+
+Each snapshot is dated. Historical snapshots preserved (never deleted) so Michael can look back at "what was queued 3 weeks ago" if useful.
+
+**Trigger events (session end):**
+
+- End of an autonomous Cursor Agent workstream (like the overnight discovery run)
+- End of any Cursor session that added artifacts, made commits, or shifted the queue
+- After answered-questions batches are applied
+- After PROD-FIX execution completes
+- After SPEC weekend sessions (end of Friday, Saturday, Sunday individually)
+- After any session where Michael says "regenerate the queue" or equivalent
+
+**Required content (in this order):**
+
+1. **Things that can be done right now** — actions Michael can take, with time estimates
+2. **Questions waiting in Dropbox to answer** — what's in the questions folder, topics covered, time estimates
+3. **New documents to skim** — background context that's not urgent but valuable
+4. **Upcoming milestones** — what's happening in the next session or weekend
+5. **Standing process reference** — reminders of where things live
+6. **Reality check on pace** — one honest paragraph about sustainability
+
+**Plain-language requirement per D-018:**
+
+- Business terms, not technical jargon
+- No variable names, function names, or file paths front-loaded
+- Time estimates in minutes/hours, not story points
+- Actionable items ("do X"), not vague ones ("consider X")
+- Written like Michael is reading it after a full day at the shop, not fresh at his workstation
+
+**Historical preservation:**
+
+Old snapshots stay in the Dropbox folder indefinitely. They form a natural audit trail of "what did the rebuild look like at any given date." Useful for:
+- Retrospective on progress velocity
+- Recovering context after a break
+- Onboarding future collaborators (Mike Michaels, potential developers)
+- Acquisition due diligence (proof of systematic discipline)
+
+**Filename convention:**
+
+`WHATS-NEXT-YYYY-MM-DD.docx` for date-stamped snapshots. If multiple snapshots on the same day (morning and evening for instance), append `-am` and `-pm`.
+
+**Generation responsibility:**
+
+- Cursor Agent regenerates at end of any session that changed state (added artifacts, made commits, shifted priorities)
+- Any AI agent working the rebuild follows this discipline
+- Michael can request a fresh snapshot at any time by asking
+
+**Related artifacts:**
+
+- D-018 (question snapshot discipline) — same pattern, questions instead of queue state
+- Dropbox questions folder: `G:\Dropbox\__AI\emergent-hq-human-queue\` (questions to answer)
+- Dropbox whats-next folder: `G:\Dropbox\__AI\emergent-hq-whats-next\` (queue snapshots)
+
+**Rationale:**
+
+Chat windows aren't accessible from the shop floor, the couch, or the car. GitHub is accessible but poorly formatted on mobile. Dropbox syncs to every device Michael uses and is readable on all of them. Keeping "what's next" in Dropbox means Michael can always check the queue without opening a laptop or logging into a chat interface.
+
+**Transferability Test result:** PASS on all five tests. This discipline itself IS the transferability mechanism — future collaborators or acquirers see the historical snapshots and immediately understand how the rebuild was managed.
+
+**Status:** Active (standing process for all sessions through rebuild completion)
+
+**Source:** Session 2026-07-01, Michael requesting queue-to-Dropbox as standing pattern
+
+---
+
 ## How to add a new decision
 
 When a decision gets made in a session, append a new entry here. Use the next D-### number. Include date, decision, context, status, and source chat. If the decision overrides an earlier one, mark the earlier one as "Superseded" and link both ways.
