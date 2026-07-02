@@ -232,7 +232,7 @@ Findings should be captured as either new PROD-FIX entries (if bugs are found) o
 
 FAST LANE (Concierge) [Queue: N] → [Concierge: name] → [Tech Bench: name] → [Safe / Client]
 
-Cards move between stations via drag-and-drop or via UI transitions at intake/handoff points. Concierge owns the queue and sequences jobs to techs. Techs perform the work at their bench. Concierge returns to client or routes to safe.
+Cards move between stations via drag-and-drop (or via QR scans at intake/handoff points). Concierge owns the queue and sequences jobs to techs. Techs perform the work at their bench. Concierge returns to client or routes to safe.
 
 **Concierge queue as first-class UI:**
 
@@ -243,15 +243,14 @@ Separate from Shop Floor viewer but linked. Concierge-role staff work primarily 
 - Quick-note field per job
 - Tech assignment interface
 
-**Login-based custody transfers:**
+**QR-based custody transfers:**
 
-Each transition (client → concierge, concierge → tech, tech → concierge, concierge → safe/client) captures `to_staff_code` from currently-authenticated user session. `from_staff_code` selected from dropdown of active staff (sourced from RGTime cache per D-026). Bench-based path never enters safe unless job completes at end-of-day or client is not present.
+Each transition (client → concierge, concierge → tech, tech → concierge, concierge → safe/client) is a QR scan. Same rigor as full-lane custody (D-015). Bench-based path never enters safe unless job completes at end-of-day or client is not present.
 
 **Priority:** High (facility-opening critical path — concierge role starts at facility opening if not before)
 
 **Dependencies:**
 - D-024 (workflow type first-class + fast lane architecture)
-- D-026 (RGTime staff master + login-based custody)
 - Canonical data model (jobs table with workflow_type column)
 - Shop Floor viewer (W-37) — fast lane rendered as second lane
 - Chain-of-custody baseline (D-015) — bench-based path supported
@@ -261,10 +260,9 @@ Each transition (client → concierge, concierge → tech, tech → concierge, c
 **In scope for 1/31/2027 facility opening:**
 - Fast lane on Shop Floor
 - Concierge queue UI (basic queue + assignment + photos + notes)
-- Login-based custody transfers for fast lane
+- QR-based custody transfers for fast lane
 - State machine for fast lane per D-024
 - Concierge role in auth model
-- Concierge staff record in RGTime
 
 **Deferred to Q2-Q4 2027:**
 - Photo request queue advanced features (client communication automation)
@@ -272,7 +270,7 @@ Each transition (client → concierge, concierge → tech, tech → concierge, c
 - Conflict management workflow (escalation paths, resolution tracking)
 - Cross-lane view (jobs that started fast but escalated to full workflow)
 
-**Companion items:** D-024, D-025, D-026, D-015, D-019, D-021, W-33, W-37, W-45
+**Companion items:** D-024, D-015, D-019, D-021, W-33, W-37
 
 ### Tech breadcrumb on sales orders + production reporting (W-45)
 **Source:** Session 2026-07-01 — Michael identifies existing workaround (tech name as QBO product code)

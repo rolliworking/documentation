@@ -518,11 +518,11 @@ This supersedes the earlier framing that RS `client_property` and RW `job_compon
 
 - **`fast_service`** — single-operation service work (dial installation, permanent link removal, hand adjustment, battery replacement, crown replacement, gasket replacement, bezel insert swap, quick regulation). Runs the fast lane: Queue → Concierge → Tech Bench → Safe or Client Return. Single-department, bench-based custody, minimal photo ceremony.
 
-**Workflow selection rule:** A job is `fast_service` IF the estimate is one specific technical action AND turnaround estimate is ≤ 2 business days AND no diagnostic work needed. Otherwise `full_service`. The rule is applied by whoever writes the estimate — not a judgment call, a checklist.
+**Workflow selection rule:** A job is `fast_service` IF the estimate is one specific technical action AND turnaround estimate is ≤ 2 business days AND no diagnostic work needed. Otherwise `full_service`. The rule is applied by whoever writes the estimate (Vianna or manager) — not a judgment call, a checklist.
 
 **Division vs workflow split:** Rolliworks and RolliShop are turnaround-time divisions (long vs under-4-weeks). Both divisions run both workflow types. RolliShop cherry-picks jobs (of either workflow type) that fit under-4-week turnaround. Rolliworks handles everything else. **Small jobs are not a division — they are a workflow pattern that exists in both divisions.**
 
-**Concierge role:** New operational role responsible for the fast lane. Concierge duties:
+**Concierge role:** New operational role responsible for the fast lane. Concierge duties include:
 - Managing the fast-lane queue and workflow sequencing
 - Small-job project management (in and out quickly)
 - Photo requests from clients (for in-progress full-service jobs)
@@ -551,12 +551,12 @@ Same visual language as the full lane (cards, drag-drop, stations). Same data mo
 
 Bench-based, not safe-based. Sequence:
 1. Concierge takes possession from client (custody: `with_concierge`)
-2. Concierge assigns to tech and hands off (custody: `at_tech`, tech identity captured)
+2. Concierge assigns to tech and hands off (custody: `at_tech`, tech_id captured)
 3. Tech completes work at bench (custody: `at_tech`, status: `in_service`)
 4. Tech returns to concierge (custody: `with_concierge`, status: `service_complete`)
 5. Concierge returns to client OR routes to safe for pickup later (custody: `released_to_client` OR `in_safe_for_pickup`)
 
-Chain-of-custody (D-015) applies at every transfer. Fast lane never enters the multi-department Shop Floor flow.
+Chain-of-custody (D-015) applies at every transfer. QR-based scanning at each transition. Fast lane never enters the multi-department Shop Floor flow.
 
 **State machine for fast lane:**
 
@@ -574,24 +574,23 @@ Minimum: one before photo (proves what came in), one after photo (proves what le
 
 **Architectural implications:**
 
-- `jobs` table gets a `workflow_type` column with CHECK constraint (`full_service`, `fast_service`)
+- `jobs` table (or equivalent rebuild name) gets a `workflow_type` column with CHECK constraint (`full_service`, `fast_service`)
 - Estimate module gets a workflow-type selector at estimate creation
 - Shop Floor UI renders two lanes stacked, filterable by lane
-- Auth model (Q-010) adds `concierge` role with defined permissions
+- Auth model (Q-010) adds `concierge` role with defined permissions (own queue, capture photos, transfer custody, communicate with clients — NOT watchmaker bench tools, NOT full Shop Floor admin)
 - Custody model (D-015) handles both safe-based (full workflow) and bench-based (fast workflow) paths
-- Concierge queue is a first-class UI surface — not an afterthought
+- KPI reporting distinguishes lane-specific metrics (fast lane: jobs per day per tech, avg time-to-complete; full lane: jobs per week per watchmaker, warranty rate)
+- Concierge queue is a first-class UI surface (like Shop Floor drag-drop is a first-class surface) — not an afterthought
 
 **Companion items:**
 - W-44 (fast lane on Shop Floor + concierge queue UI)
-- W-45 (tech breadcrumb on sales orders)
 - D-015 (chain of custody) — must handle bench-based path
 - D-019 (two-stage intake) — workflow-type routing happens at estimate creation, verified at Receive Watch
-- D-020 (silent failure banned)
-- D-021 (photo storage) — minimum 2 photos per fast-lane job
-- D-022 (watch assembly state) — fast-lane jobs typically 1 of 1 throughout
-- D-026 (RGTime as staff master)
+- D-020 (silent failure banned) — QR scans and state transitions must produce observable telemetry
+- D-021 (photo storage) — minimum 2 photos per fast-lane job indexed same as full-lane
+- D-022 (watch assembly state) — fast-lane jobs typically 1 of 1 throughout (no disassembly)
 - Q-010 (cross-app auth) — concierge role added to auth model
-- Q-016 spike (small-jobs current handling)
+- Q-016 spike (small-jobs current handling) — informs migration approach
 
 **Transferability Test result:** Anticipated PASS on all five tests. Watch items:
 - Workflow-type selection rule must be documented as a checklist, not judgment

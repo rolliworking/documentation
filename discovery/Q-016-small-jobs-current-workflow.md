@@ -2,7 +2,7 @@
 
 **Type:** Ad-hoc discovery spike (post-Phase-1)
 **Priority:** High — informs SPEC-001 workflow-type routing before SPEC weekend
-**Owner:** Cursor Agent (autonomous execution when queued)
+**Owner:** Cursor Agent (autonomous execution)
 **Est. duration:** 1-2 hours autonomous work
 **Depends on:** Q-001 (Receive Watch), Q-002 (Work Queue state machine), Q-004 (Shop Floor)
 
@@ -10,7 +10,7 @@
 
 ## Purpose
 
-Map how "small jobs" (single-operation service work like dial installation, permanent link removal, hand adjustment, battery replacement, crown replacement, gasket replacement) are handled in the current Lovable RolliSuite. Per D-025 this is investigation only — no code changes to current Lovable. Determine:
+Map how "small jobs" (single-operation service work like dial installation, permanent link removal, hand adjustment, battery replacement, crown replacement, gasket replacement) are handled in the current Lovable RolliSuite. Determine:
 - What workflow steps do small jobs go through today?
 - What steps do they skip vs follow vs work around?
 - Where does the current system force small jobs through unnecessary rigor?
@@ -21,7 +21,7 @@ Map how "small jobs" (single-operation service work like dial installation, perm
 
 ## Scope
 
-Files to investigate (READ ONLY per D-025):
+Files to investigate:
 - `apps/rs/src/pages/intake/*` — how small jobs enter the system today
 - `apps/rs/src/pages/inspection/*` — do small jobs go through inspection?
 - Estimate creation logic — is there any current concept of "small job" vs "full service"?
@@ -43,7 +43,6 @@ Files to investigate (READ ONLY per D-025):
 5. **Custody model:** Do small jobs currently touch the safe, or are they bench-only? How is that tracked (or not tracked)?
 6. **Client interaction:** Is walk-in-and-wait supported in the current intake, or does everything assume drop-off?
 7. **Concierge concept:** Is there any current concept resembling concierge (staff member owning small-job queue), or is small-job handling distributed across roles?
-8. **Tech attribution today:** Confirm the QBO product-code swap workaround (W-45 background). Are there other tech-attribution workarounds in use?
 
 ---
 
@@ -58,20 +57,18 @@ Include:
 - Data gaps identified (what's captured vs what's missing)
 - Custody model gaps
 - Skipped steps and workarounds
-- Tech attribution workaround audit
-- Concrete proposals for closing each gap in the rebuild (not current Lovable, per D-025)
-- How findings map to D-024, D-026, W-44, W-45, and SPEC-001 planning
+- Concrete proposals for closing each gap in the rebuild
+- How findings map to D-024, W-44, and SPEC-001 planning
 - Open questions logged in plain language per D-018
 
 ---
 
 ## Update queue
 
-Update `TASK-QUEUE.md` to include Q-016 as an ad-hoc spike (post-Phase-1). Mark complete when Cursor executes the investigation.
+Update `TASK-QUEUE.md` to include Q-016 as an ad-hoc spike (post-Phase-1). Mark complete when done.
 
 Commit and push per standard cadence. Report SHA.
 
 ---
 
 _End of spike packet. This file is the task brief; the investigation results will be written into this same file when executed._
-
